@@ -127,6 +127,9 @@ function doCombo()
   if skill:CanActivate() then
     skill:Activate();
     comboState = comboState + 1;
+    if comboState > 4 then
+      comboState = 0;
+    end
   end
 end
 
