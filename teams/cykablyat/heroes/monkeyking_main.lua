@@ -136,7 +136,7 @@ function doCombo()
 
   local skill = unitSelf:GetAbility(combo[comboState])
   if skill and skill:CanActivate() then
-    skill:Activate();
+    unitSelf:OrderAbility(skill);
     comboState = comboState + 1;
   end
 end
