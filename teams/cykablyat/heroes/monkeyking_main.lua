@@ -112,7 +112,7 @@ object.onthink = object.onthinkOverride
 local combo = {skills.dash, skills.rock, skills.pole, skills.dash, skills.pole};
 function comboViable()
   local mana = 0;
-  for skill in combo do
+  for k, skill in pairs(combo) do
     if not skill:CanActivate() then
       return false;
     end
