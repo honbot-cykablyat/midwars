@@ -86,8 +86,8 @@ function object:SkillBuild()
       lvSkill:LevelUp()
     end
   else
-    if skills.stats:CanLevelUp() then
-      skills.stats:LevelUp()
+    if skills.attributeBoost:CanLevelUp() then
+      skills.attributeBoost:LevelUp()
     end
   end
 end
@@ -100,25 +100,22 @@ end
 -- @return: none
 function object:onthinkOverride(tGameVariables)
   self:onthinkOld(tGameVariables)
-  
-  if comboViable() then
-    doCombo()
-  end
 
   -- custom code here
 end
 object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride
 
+local dash_dmg = {15, 20, 25, 30};
+local pole_dmg = {100, 150, 200, 250};
+local rock_dmg = {60, 90, 120, 150};
+local effective_skills = {0, 2, 1};
 local combo = {0, 2, 1, 0, 1}; -- dash, rock, pole, dash, pole
 function comboViable()
   local unitSelf = core.unitSelf
   local mana = 0;
-<<<<<<< HEAD
-  local unitSelf = core.unitSelf
-=======
->>>>>>> I did it. Maybe?
-  for k, v in pairs(combo) do
+  local mana = 0.5 * skills.pole:GetManaCost();
+  for _, v in pairs(effective_skills) do
     local skill = unitSelf:GetAbility(v)
     if not skill:CanActivate() then
       return false;
@@ -129,18 +126,53 @@ function comboViable()
 end
 
 local comboState = 1;
-function doCombo()
+function KillUtility(botBrain)
+  local unitSelf = core.unitSelf;
+  if comboState > 1 then
+    return 999;
+  end
+  if not comboViable() then
+    return 0;
+  end
+  local physical_dmg = 2 * (dash_dmg[skills.dash:GetLevel()] + core.GetFinalAttackDamageAverage(unitSelf)) + 1.5 * pole_dmg[skills.pole:GetLevel()];
+  local magic_dmg = rock_dmg[skills.rock:GetLevel()];
+  for _, unit in pairs(core.AssessLocalUnits(object, unitSelf:GetPosition(), skills.dash:GetRange()).EnemyHeroes) do
+    local dmg = (1 - unit:GetPhysicalResistance()) * physical_dmg + (1 - unit:GetMagicResistance()) * magic_dmg;
+    if dmg >= unit:GetHealth() then
+      behaviorLib.herotarget = unit;
+      BotEcho("LET'S DO THIS!");
+      return 999;
+    end 
+  end
+  return 0;
+end
+
+local lastCast = 0;
+local wait = 0;
+function KillExecute(botBrain)
   local unitSelf = core.unitSelf
   if comboState >= 5 then 
     comboState = 1;
+    lastCast = 0;
+    return true;
   end
 
   local skill = unitSelf:GetAbility(combo[comboState])
-  if skill and skill:CanActivate() then
-    unitSelf:GetBehaviour():OrderAbility(skill);
+  if skill and skill:CanActivate() and (HoN:GetMatchTime() - lastCast) > wait then
+    BotEcho(skill:GetTypeName());
+    wait = skill:GetAdjustedCastTime();
+    lastCast = HoN:GetMatchTime();
+    botBrain:OrderAbility(skill, behaviorLib.herotarget);
     comboState = comboState + 1;
   end
+  return false;
 end
+
+local KillBehavior = {}
+KillBehavior["Utility"] = KillUtility
+KillBehavior["Execute"] = KillExecute
+KillBehavior["Name"] = "Kill"
+tinsert(behaviorLib.tBehaviors, KillBehavior)
 
 ----------------------------------------------
 --            oncombatevent override        --
