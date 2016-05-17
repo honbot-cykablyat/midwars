@@ -121,14 +121,14 @@ function comboViable()
   return mana < core.unitSelf:GetMana();
 end
 
-local comboState = 0;
+local comboState = 1;
 function doCombo()
   local skill = combo[comboState];
   if skill:CanActivate() then
     skill:Activate();
     comboState = comboState + 1;
-    if comboState > 4 then
-      comboState = 0;
+    if comboState >= table.getn(combo) then
+      comboState = 1;
     end
   end
 end
