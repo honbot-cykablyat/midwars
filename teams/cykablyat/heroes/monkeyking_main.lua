@@ -100,10 +100,34 @@ end
 function object:onthinkOverride(tGameVariables)
   self:onthinkOld(tGameVariables)
 
+  if comboViable() then
+    doCombo()
+  end
   -- custom code here
 end
 object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride
+
+local combo = {skills.dash, skills.rock, skills.pole, skills.dash, skills.pole};
+function comboViable()
+  local mana = 0;
+  for skill in combo then
+    if !skill:CanActivate() then
+      return false;
+    end
+    mana += skill:GetManaCost();
+  end
+  return mana < self.core.unitSelf:GetMana();
+end
+
+local comboState = 0;
+function doCombo()
+  local skill = combo[comboState];
+  if skill:CanActivate() then
+    skill:Activate();
+    comboState += 1;
+  end
+end
 
 ----------------------------------------------
 --            oncombatevent override        --
