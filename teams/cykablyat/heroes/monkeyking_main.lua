@@ -14,7 +14,7 @@ object.bAttackCommands = true
 object.bAbilityCommands = true
 object.bOtherCommands = true
 
-object.bReportBehavior = false
+object.bReportBehavior = true
 object.bDebugUtility = false
 object.bDebugExecute = false
 
@@ -103,6 +103,7 @@ function object:onthinkOverride(tGameVariables)
   if comboViable() then
     doCombo()
   end
+
   -- custom code here
 end
 object.onthinkOld = object.onthink

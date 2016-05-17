@@ -65,9 +65,9 @@ function object:SkillBuild()
     skills.fart = unitSelf:GetAbility(1)
     skills.skin = unitSelf:GetAbility(2)
     skills.ulti = unitSelf:GetAbility(3)
-    skills.attributeBoost = unitSelf:GetAbility(4)
+    skills.stats = unitSelf:GetAbility(4)
 
-    if skills.hook and skills.fart and skills.skin and skills.ulti and skills.attributeBoost then
+    if skills.hook and skills.fart and skills.skin and skills.ulti and skills.stats then
       bSkillsValid = true
     else
       return
@@ -78,17 +78,13 @@ function object:SkillBuild()
     return
   end
 
-  if skills.ulti:CanLevelUp() then
-    skills.ulti:LevelUp()
-  elseif skills.hook:CanLevelUp() then
-    skills.hook:LevelUp()
-  elseif skills.fart:CanLevelUp() then
-    skills.fart:LevelUp()
-  elseif skills.skin:CanLevelUp() then
-    skills.skin:LevelUp()
-  else
-    skills.attributeBoost:LevelUp()
+  local skillarray = {skills.fart, skills.hook, skills.hook, skills.skin, skills.hook, skills.ulti, skills.hook, skills.fart, skills.fart, skills.fart, skills.ulti, skills.skin, skills.skin, skills.skin, skills.stats, skills.ulti, skills.stats}
+
+  local lvSkill = skillarray[unitSelf:GetLevel()]
+  if lvSkill:CanLevelUp() then
+    lvSkill:LevelUp()
   end
+
 end
 
 ------------------------------------------------------
