@@ -99,7 +99,7 @@ end
 -- @return: none
 function object:onthinkOverride(tGameVariables)
   self:onthinkOld(tGameVariables)
-
+  
   if comboViable() then
     doCombo()
   end
@@ -111,11 +111,11 @@ object.onthink = object.onthinkOverride
 local combo = {skills.dash, skills.rock, skills.pole, skills.dash, skills.pole};
 function comboViable()
   local mana = 0;
-  for skill in combo then
-    if !skill:CanActivate() then
+  for skill in combo do
+    if not skill:CanActivate() then
       return false;
     end
-    mana += skill:GetManaCost();
+    mana = mana + skill:GetManaCost();
   end
   return mana < self.core.unitSelf:GetMana();
 end
@@ -125,7 +125,7 @@ function doCombo()
   local skill = combo[comboState];
   if skill:CanActivate() then
     skill:Activate();
-    comboState += 1;
+    comboState = comboState + 1;
   end
 end
 
