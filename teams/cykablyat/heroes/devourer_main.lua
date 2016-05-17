@@ -80,11 +80,16 @@ function object:SkillBuild()
 
   local skillarray = {skills.fart, skills.hook, skills.hook, skills.skin, skills.hook, skills.ulti, skills.hook, skills.fart, skills.fart, skills.fart, skills.ulti, skills.skin, skills.skin, skills.skin, skills.stats, skills.ulti, skills.stats}
 
-  local lvSkill = skillarray[unitSelf:GetLevel()]
-  if lvSkill:CanLevelUp() then
-    lvSkill:LevelUp()
+  if unitSelf:GetLevel() < 17 then
+    local lvSkill = skillarray[unitSelf:GetLevel()]
+    if lvSkill:CanLevelUp() then
+      lvSkill:LevelUp()
+    end
+  else
+    if skills.stats:CanLevelUp() then
+      skills.stats:LevelUp()
+    end
   end
-
 end
 
 ------------------------------------------------------
