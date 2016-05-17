@@ -123,13 +123,13 @@ end
 
 local comboState = 1;
 function doCombo()
+  if comboState >= table.getn(combo) then 
+    comboState = 1;
+  end
   local skill = combo[comboState];
   if skill:CanActivate() then
     skill:Activate();
     comboState = comboState + 1;
-    if comboState >= table.getn(combo) then
-      comboState = 1;
-    end
   end
 end
 
