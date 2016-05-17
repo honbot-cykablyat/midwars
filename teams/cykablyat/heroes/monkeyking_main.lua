@@ -14,7 +14,7 @@ object.bAttackCommands = true
 object.bAbilityCommands = true
 object.bOtherCommands = true
 
-object.bReportBehavior = true
+object.bReportBehavior = false
 object.bDebugUtility = false
 object.bDebugExecute = false
 
@@ -78,16 +78,17 @@ function object:SkillBuild()
     return
   end
 
-  if skills.ulti:CanLevelUp() then
-    skills.ulti:LevelUp()
-  elseif skills.dash:CanLevelUp() then
-    skills.dash:LevelUp()
-  elseif skills.pole:CanLevelUp() then
-    skills.pole:LevelUp()
-  elseif skills.rock:CanLevelUp() then
-    skills.rock:LevelUp()
+  local skillarray = {skills.dash, skills.pole, skills.pole, skills.rock, skills.pole, skills.rock, skills.pole, skills.ulti, skills.rock, skills.rock, skills.ulti, skills.dash, skills.dash, skills.dash, skills.ulti, skills.stats, skills.ulti}
+
+  if unitSelf:GetLevel() < 17 then
+    local lvSkill = skillarray[unitSelf:GetLevel()]
+    if lvSkill:CanLevelUp() then
+      lvSkill:LevelUp()
+    end
   else
-    skills.attributeBoost:LevelUp()
+    if skills.stats:CanLevelUp() then
+      skills.stats:LevelUp()
+    end
   end
 end
 
@@ -136,7 +137,7 @@ function doCombo()
 
   local skill = unitSelf:GetAbility(combo[comboState])
   if skill and skill:CanActivate() then
-    unitSelf:OrderAbility(skill);
+    unitSelf:GetBehaviour():OrderAbility(skill);
     comboState = comboState + 1;
   end
 end
