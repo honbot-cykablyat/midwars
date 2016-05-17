@@ -123,7 +123,7 @@ end
 
 local comboState = 1;
 function doCombo()
-  if comboState >= table.getn(combo) then 
+  if comboState >= 5 then 
     comboState = 1;
   end
   local skill = combo[comboState];
