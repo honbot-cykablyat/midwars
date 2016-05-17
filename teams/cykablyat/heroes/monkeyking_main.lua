@@ -118,7 +118,8 @@ function comboViable()
     end
     mana = mana + skill:GetManaCost();
   end
-  return mana < self.core.unitSelf:GetMana();
+  local unit = self.core.unitSelf;
+  return mana < unit:GetMana();
 end
 
 local comboState = 0;
