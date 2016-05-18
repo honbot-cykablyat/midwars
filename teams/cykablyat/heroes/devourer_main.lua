@@ -101,16 +101,12 @@ end
 function object:onthinkOverride(tGameVariables)
   self:onthinkOld(tGameVariables)
 
-  -- custom code here
-
   if HasEnemiesInRange(core.unitSelf, 250) then
     if not core.unitSelf:HasState("State_Devourer_Ability2_Self") then
-      BotEcho("OFF")
       object:OrderAbility(skills.fart)
     end
   else
     if core.unitSelf:HasState("State_Devourer_Ability2_Self") then
-      BotEcho("ON")
       object:OrderAbility(skills.fart)
     end
   end
@@ -138,19 +134,6 @@ end
 -- @return: none
 function object:oncombateventOverride(EventData)
   self:oncombateventOld(EventData)
-  local myPos = core.unitSelf:GetPosition()
-
-  local unitsNearby = core.AssessLocalUnits(object, myPos, skills.fart:GetRange())
-  if next(unitsNearby) == nil then
-    if skills.fart:IsActive() then
-      core.unitSelf:GetBehaviour():OrderAbility(skills.fart)
-    end
-  else
-    if not skills.fart:IsActive() then
-      core.unitSelf:GetBehaviour():OrderAbility(skills.fart)
-    end
-  end
-
 end
 -- override combat event trigger function.
 object.oncombateventOld = object.oncombatevent
@@ -166,63 +149,79 @@ local function CustomHarassUtilityOverride(hero)
   if skills.ulti:CanActivate() then
     nUtility = nUtility + 40
   end
-
   return nUtility
 end
 behaviorLib.CustomHarassUtility = CustomHarassUtilityOverride
 
-local function HarassHeroExecuteOverride(botBrain)
-  local unitTarget = behaviorLib.heroTarget
-  if unitTarget == nil or not unitTarget:IsValid() then
-    return false --can not execute, move on to the next behavior
-  end
+function predict_location(unit) {
+  local heading = unit:GetHeading()
+}
 
+local effective_skills = {0, 2, 1};
+local combo = {0, 2, 1, 0, 1}; -- dash, rock, pole, dash, pole
+
+function comboViable()
   local unitSelf = core.unitSelf
-
-  if unitSelf:IsChanneling() then
-    return
-  end
-
-  local bActionTaken = false
-
-  --since we are using an old pointer, ensure we can still see the target for entity targeting
-  if core.CanSeeUnit(botBrain, unitTarget) then
-    local dist = Vector3.Distance2D(unitSelf:GetPosition(), unitTarget:GetPosition())
-    local attkRange = core.GetAbsoluteAttackRangeToUnit(unitSelf, unitTarget);
-
-    local itemGhostMarchers = core.itemGhostMarchers
-
-    local ulti = skills.ulti
-    local ultiRange = ulti and (ulti:GetRange() + core.GetExtraRange(unitSelf) + core.GetExtraRange(unitTarget)) or 0
-
-    local bUseUlti = true
-
-    if ulti and ulti:CanActivate() and bUseUlti and dist < ultiRange then
-      bActionTaken = core.OrderAbilityEntity(botBrain, ulti, unitTarget)
-    elseif (ulti and ulti:CanActivate() and bUseUlti and dist > ultiRange) then
-      --move in when we want to ult
-      local desiredPos = unitTarget:GetPosition()
-
-      if itemPK and itemPK:CanActivate() then
-        bActionTaken = core.OrderItemPosition(botBrain, unitSelf, itemPK, desiredPos)
-      end
-
-      if not bActionTaken and itemGhostMarchers and itemGhostMarchers:CanActivate() then
-        bActionTaken = core.OrderItemClamp(botBrain, unitSelf, itemGhostMarchers)
-      end
-
-      if not bActionTaken and behaviorLib.lastHarassUtil < behaviorLib.diveThreshold then
-        desiredPos = core.AdjustMovementForTowerLogic(desiredPos)
-      end
-      core.OrderMoveToPosClamp(botBrain, unitSelf, desiredPos, false)
-      bActionTaken = true
+  local mana = 0.5 * skills.pole:GetManaCost();
+  for _, v in pairs(effective_skills) do
+    local skill = unitSelf:GetAbility(v)
+    if not skill:CanActivate() then
+      return false;
     end
+    mana = mana + skill:GetManaCost();
+  end
+  return mana < core.unitSelf:GetMana();
+end
+
+local comboState = 1;
+function KillUtility(botBrain)
+  local unitSelf = core.unitSelf;
+  if comboState > 1 then
+    return 999;
+  end
+  if not comboViable() then
+    return 0;
+  end
+  local physical_dmg = 2 * (dash_dmg[skills.dash:GetLevel()] + core.GetFinalAttackDamageAverage(unitSelf)) + 1.5 * pole_dmg[skills.pole:GetLevel()];
+  local magic_dmg = rock_dmg[skills.rock:GetLevel()];
+  for _, unit in pairs(core.AssessLocalUnits(object, unitSelf:GetPosition(), skills.dash:GetRange()).EnemyHeroes) do
+    local dmg = (1 - unit:GetPhysicalResistance()) * physical_dmg + (1 - unit:GetMagicResistance()) * magic_dmg;
+    if dmg >= unit:GetHealth() then
+      behaviorLib.herotarget = unit;
+      BotEcho("LET'S DO THIS!");
+      return 999;
+    end 
+  end
+  return 0;
+end
+
+local lastCast = 0;
+local wait = 0;
+function KillExecute(botBrain)
+  local unitSelf = core.unitSelf
+  if comboState >= 5 then 
+    comboState = 1;
+    lastCast = 0;
+    return true;
   end
 
-  if not bActionTaken then
-    return object.harassExecuteOld(botBrain)
+  local skill = unitSelf:GetAbility(combo[comboState])
+  if skill and skill:CanActivate() and (HoN:GetMatchTime() - lastCast) > wait then
+    BotEcho(skill:GetTypeName());
+    wait = skill:GetAdjustedCastTime();
+    lastCast = HoN:GetMatchTime();
+    botBrain:OrderAbility(skill, behaviorLib.herotarget);
+    comboState = comboState + 1;
   end
+  return false;
 end
+
+local KillBehavior = {}
+KillBehavior["Utility"] = KillUtility
+KillBehavior["Execute"] = KillExecute
+KillBehavior["Name"] = "Kill"
+tinsert(behaviorLib.tBehaviors, KillBehavior)
+
 object.harassExecuteOld = behaviorLib.HarassHeroBehavior["Execute"]
 behaviorLib.HarassHeroBehavior["Execute"] = HarassHeroExecuteOverride
 
