@@ -80,12 +80,12 @@ function object:SkillBuild()
 
   if skills.ulti:CanLevelUp() then
     skills.ulti:LevelUp()
-  elseif skills.whip:CanLevelUp() then
-    skills.whip:LevelUp()
   elseif skills.hold:CanLevelUp() then
     skills.hold:LevelUp()
   elseif skills.show:CanLevelUp() then
     skills.show:LevelUp()
+  elseif skills.whip:CanLevelUp() then
+    skills.whip:LevelUp()
   else
     skills.attributeBoost:LevelUp()
   end
@@ -104,6 +104,143 @@ function object:onthinkOverride(tGameVariables)
 end
 object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride
+
+-- ComboWombo -behaviour
+
+local atks_per_sec = 0.71; -- default value
+local hold_time = {2.5, 3.25, 4, 4.75};
+local show_time = {2.5, 3, 3.5, 4};
+local castableSpells = {0, 1, 3};
+local ulti_dmg_multiplier = {1.4, 1.6, 1.8};
+-- Lasts until target gets more than 1500 units away from spawned Puppet, or until Puppet is killed.
+local combo = {3, 1, 5, 0, 5}; -- ulti, show, *attack, hold, *attack,
+
+-- For checking if PuppetMaster has enough mana for Combo and no spells are in cooldown
+local function ableToCombo()
+  local unitSelf = core.unitSelf
+  local manaCost = 0;
+  for _, v in pairs(castableSpells) do
+    local skill = unitSelf:GetAbility(v)
+    if not skill:CanActivate() then
+      BotEcho(skill:GetName())
+      return false;
+    end
+    manaCost = manaCost + skill:GetManaCost();
+  end
+  return manaCost <= core.unitSelf:GetMana();
+end
+
+-- Helper function for calculating the possible damage 
+local function calculateDamage(self, enemyHero)
+  local avg_dmg = core.GetFinalAttackDamageAverage(self);
+  local avg_hits_hold = math.floor(hold_time[skills.hold:GetLevel()] / atks_per_sec);
+  local avg_hits_show = math.floor(show_time[skills.show:GetLevel()] / atks_per_sec);
+  local ulti_multiplier = ulti_dmg_multiplier[skills.ulti:GetLevel()];
+  local dmg = ulti_multiplier*(enemyHero:GetPhysicalResistance() * avg_dmg * (avg_hits_hold + avg_hits_show));
+  return dmg;
+end;
+
+-- Utility function for Combo that is checked on every tick
+local comboIndex = 1;
+local target = nil
+local function ComboUtility(botBrain)
+  local unitSelf = core.unitSelf
+  local unitPos = unitSelf:GetPosition();
+  -- core.DrawDebugLine(unitPos, Vector3.Create(unitPos.x,  unitPos.y+400))
+  core.DrawXPosition(unitPos, "red", 1200)
+  if comboIndex > 1 then
+    return 999;
+  end
+  if not ableToCombo() then
+    BotEcho("no combo")
+    return 0;
+  end
+  -- Loop through enemy heros in 400 radius
+  BotEcho("COMBO TIME")
+  for _, unit in pairs(core.AssessLocalUnits(botBrain, unitSelf:GetPosition(), 600).EnemyHeroes) do
+--    BotEcho("yo looping")
+    local dmg = calculateDamage(unitSelf, unit);
+    -- BotEcho("Calculated damage: " + dmg);
+    BotEcho(dmg)
+    BotEcho(unit:GetHealth())
+    --if dmg >= unit:GetHealth() or true then
+      behaviorLib.herotarget = unit;
+      target = unit
+      BotEcho("LET'S DO THIS!");
+      return 999;
+    -- end 
+  end
+  return 0;
+end
+
+-- Execution function for the Combo
+local lastCast = 0;
+local lastAttacked = 0;
+local wait = 0;
+local attacksLeft = 0;
+local function ComboExecute(botBrain)
+  BotEcho("executing")
+  BotEcho(comboIndex)
+  -- Check if execution of combo has been completed
+  if comboIndex > 5 then 
+    BotEcho("ending combo")
+    comboIndex = 1;
+    wait = 0;
+    lastCast = 0;
+    lastAttacked = 0;
+    return true;
+  end
+  local unitSelf = core.unitSelf
+
+  
+  --BotEcho(skill)
+  if attacksLeft > 0 then
+    BotEcho("still attacks left!")
+    behaviorLib.herotarget = unit;
+    if (lastAttacked - HoN:GetMatchTime() <= atks_per_sec) then
+      attacksLeft = attacksLeft - 1;
+      lastAttacked = HoN:GetMatchTime();
+      -- If no attacks left move on to next combo state
+      if attacksLeft == 0 then
+        BotEcho("no attacks left")
+        comboIndex = comboIndex + 1;
+      end
+    end
+  elseif comboIndex == 3 or comboIndex == 5 then
+    -- attack
+   BotEcho("attack!")
+    if comboIndex == 3 then
+      attacksLeft = math.floor(hold_time[skills.hold:GetLevel()] / atks_per_sec) - 1;
+    else
+      attacksLeft = math.floor(show_time[skills.show:GetLevel()] / atks_per_sec) + 2;
+    end
+    behaviorLib.herotarget = unit;
+    lastAttacked = HoN:GetMatchTime();
+  else
+    -- cast a spell
+    BotEcho("cast a spell!")
+   -- BotEcho(skill:CanActivate())
+    local skill = unitSelf:GetAbility(combo[comboIndex]);
+	if skill and skill:CanActivate() and (HoN:GetMatchTime() - lastCast) > wait then
+      BotEcho(skill:GetTypeName());
+      wait = skill:GetAdjustedCastTime();
+      lastCast = HoN:GetMatchTime();
+--      botBrain:OrderAbilityEntity(skill, target);
+   --   botBrain.OrderPosition(botBrain, target, target:GetPosition())
+      core.OrderAbilityEntity(botBrain, skill, target);
+      BotEcho(type (target[1]))
+      comboIndex = comboIndex + 1;
+	end
+  end
+  return false;
+end
+
+-- Declaration of this custom Combo-behaviour which is checked on every tick if the PuppetMaster is able to do it => spells ready and enemy hero in range
+local ComboBehavior = {}
+ComboBehavior["Utility"] = ComboUtility
+ComboBehavior["Execute"] = ComboExecute
+ComboBehavior["Name"] = "Combo"
+tinsert(behaviorLib.tBehaviors, ComboBehavior)
 
 ----------------------------------------------
 --            oncombatevent override        --
