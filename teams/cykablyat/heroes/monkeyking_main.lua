@@ -111,7 +111,7 @@ local pole_dmg = {100, 150, 200, 250};
 local rock_dmg = {60, 90, 120, 150};
 local effective_skills = {0, 2, 1};
 local combo = {0, 2, 1, 0, 1}; -- dash, rock, pole, dash, pole
-function comboViable()
+local function comboViable()
   local unitSelf = core.unitSelf
   local mana = 0;
   local mana = 0.5 * skills.pole:GetManaCost();
@@ -126,7 +126,7 @@ function comboViable()
 end
 
 local comboState = 1;
-function KillUtility(botBrain)
+local function KillUtility(botBrain)
   local unitSelf = core.unitSelf;
   if comboState > 1 then
     return 999;
@@ -147,22 +147,27 @@ function KillUtility(botBrain)
   return 0;
 end
 
-local lastCast = 0;
-local wait = 0;
-function KillExecute(botBrain)
+local function orderAbility(botBrain, s)
+  local unitSelf = core.unitSelf
+  local skill = unitSelf:GetAbility(s);
+  if s == 1 then
+    core.OrderAbilityEntity(botBrain, skill, behaviorLib.herotarget);
+  else
+    core.OrderAbility(botBrain, skill);
+  end
+end
+
+local function KillExecute(botBrain)
   local unitSelf = core.unitSelf
   if comboState >= 5 then 
     comboState = 1;
-    lastCast = 0;
     return true;
   end
 
   local skill = unitSelf:GetAbility(combo[comboState])
-  if skill and skill:CanActivate() and (HoN:GetMatchTime() - lastCast) > wait then
+  if skill and skill:CanActivate() then
     BotEcho(skill:GetTypeName());
-    wait = skill:GetAdjustedCastTime();
-    lastCast = HoN:GetMatchTime();
-    botBrain:OrderAbility(skill, behaviorLib.herotarget);
+    orderAbility(botBrain, combo[comboState]);
     comboState = comboState + 1;
   end
   return false;
