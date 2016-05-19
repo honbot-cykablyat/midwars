@@ -153,9 +153,33 @@ local function CustomHarassUtilityOverride(hero)
 end
 behaviorLib.CustomHarassUtility = CustomHarassUtilityOverride
 
-function predict_location(unit) {
-  local heading = unit:GetHeading()
-}
+function predict_location(enemy)
+  local unitSelf = self.core.unitSelf
+  local enemyHeading = enemy:GetHeading()
+  local selfPos = unitSelf.GetPosition()
+  local enemyPos = unitSelf.GetPosition()
+  local hookSpeed = 1600
+  local enemySpeed = enemy:GetMoveSpeed()
+  local t_max = 1100/hookSpeed
+
+  while true do
+    local distance = Vector3.Distance2D(selfPos, enemyPos)
+
+    local t = distance / hookSpeed
+
+    local enemyNewPos = ((t*enemySpeed)*enemyHeading) + enemyPos
+
+    distance = Vector3.Distance2D(selfPos, enemyNewPos)
+
+    local t_new = distance / hookSpeed
+    if t_new == t then
+      return enemyNewPos
+    elseif t_new < t_max then
+      return nil
+    end
+    enemyPos = enemyNewPos
+  end
+end
 
 local effective_skills = {0, 2, 1};
 local combo = {0, 2, 1, 0, 1}; -- dash, rock, pole, dash, pole
@@ -216,13 +240,12 @@ function KillExecute(botBrain)
   return false;
 end
 
-local KillBehavior = {}
-KillBehavior["Utility"] = KillUtility
-KillBehavior["Execute"] = KillExecute
-KillBehavior["Name"] = "Kill"
-tinsert(behaviorLib.tBehaviors, KillBehavior)
+--local KillBehavior = {}
+--KillBehavior["Utility"] = KillUtility
+--KillBehavior["Execute"] = KillExecute
+--KillBehavior["Name"] = "Kill"
+--tinsert(behaviorLib.tBehaviors, KillBehavior)
 
-object.harassExecuteOld = behaviorLib.HarassHeroBehavior["Execute"]
-behaviorLib.HarassHeroBehavior["Execute"] = HarassHeroExecuteOverride
+
 
 BotEcho('finished loading devourer_main')
