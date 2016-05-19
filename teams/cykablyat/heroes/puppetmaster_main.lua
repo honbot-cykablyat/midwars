@@ -179,7 +179,6 @@ local lastAttacked = 0;
 local wait = 0;
 local attacksLeft = 0;
 local function ComboExecute(botBrain)
-  BotEcho("executing")
   BotEcho(comboIndex)
   -- Check if execution of combo has been completed
   if comboIndex > 5 then 
@@ -192,12 +191,13 @@ local function ComboExecute(botBrain)
   end
   local unitSelf = core.unitSelf
 
-  
   --BotEcho(skill)
   if attacksLeft > 0 then
     BotEcho("still attacks left!")
-    behaviorLib.herotarget = unit;
-    if (lastAttacked - HoN:GetMatchTime() <= atks_per_sec) then
+    if (HoN:GetMatchTime() - lastAttacked > 600) then
+      -- unneeded?
+      behaviorLib.herotarget = target;
+      core.OrderAttack(botBrain, unitSelf, target)
       attacksLeft = attacksLeft - 1;
       lastAttacked = HoN:GetMatchTime();
       -- If no attacks left move on to next combo state
@@ -206,7 +206,9 @@ local function ComboExecute(botBrain)
         comboIndex = comboIndex + 1;
       end
     end
-  elseif comboIndex == 3 or comboIndex == 5 then
+  elseif (HoN:GetMatchTime() - lastCast) > wait and (comboIndex == 3 or comboIndex == 5) then
+   lastCast = 0;
+   wait = 0;
     -- attack
    BotEcho("attack!")
     if comboIndex == 3 then
@@ -214,21 +216,20 @@ local function ComboExecute(botBrain)
     else
       attacksLeft = math.floor(show_time[skills.show:GetLevel()] / atks_per_sec) + 2;
     end
-    behaviorLib.herotarget = unit;
+    -- is this needed?
+    behaviorLib.herotarget = target;
+    core.OrderAttack(botBrain, unitSelf, target)
     lastAttacked = HoN:GetMatchTime();
   else
     -- cast a spell
     BotEcho("cast a spell!")
-   -- BotEcho(skill:CanActivate())
     local skill = unitSelf:GetAbility(combo[comboIndex]);
 	if skill and skill:CanActivate() and (HoN:GetMatchTime() - lastCast) > wait then
       BotEcho(skill:GetTypeName());
       wait = skill:GetAdjustedCastTime();
+      BotEcho(wait)
       lastCast = HoN:GetMatchTime();
---      botBrain:OrderAbilityEntity(skill, target);
-   --   botBrain.OrderPosition(botBrain, target, target:GetPosition())
       core.OrderAbilityEntity(botBrain, skill, target);
-      BotEcho(type (target[1]))
       comboIndex = comboIndex + 1;
 	end
   end
