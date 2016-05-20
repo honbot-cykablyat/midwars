@@ -351,7 +351,7 @@ local function comboViable()
 end
 
 local comboState = 1;
-local function KillUtility(botBrain)
+function KillUtility(botBrain)
   local unitSelf = core.unitSelf;
   if comboState > 1 then
     return 999;
@@ -393,7 +393,7 @@ function KillExecute(botBrain)
   return false;
 end
 
---local KillBehavior = {}
+local KillBehavior = {}
 --KillBehavior["Utility"] = KillUtility
 --KillBehavior["Execute"] = KillExecute
 --KillBehavior["Name"] = "Kill"
