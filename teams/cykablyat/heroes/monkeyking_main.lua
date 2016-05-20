@@ -70,13 +70,13 @@ tinsert(behaviorLib.tBehaviors, behaviorLib.StashBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.HarassHeroBehavior)
 
 behaviorLib.StartingItems = 
-	{"Item_LoggersHatchet", "Item_ManaPotion", "Item_MinorTotem", "Item_RunesOfTheBlight"}
+  {"Item_LoggersHatchet", "Item_ManaPotion", "Item_MinorTotem", "Item_RunesOfTheBlight"}
 behaviorLib.LaneItems = 
-	{"Item_Bottle", "Item_EnhancedMarchers", "Item_PowerSupply", "Item_Protect"}
+  {"Item_Bottle", "Item_EnhancedMarchers", "Item_PowerSupply", "Item_Protect"}
 behaviorLib.MidItems = 
-	{"Item_Dawnbringer", "Item_Evasion", "Item_Pierce", "Item_Sasuke", "Item_Weapon3"}
+  {"Item_Dawnbringer", "Item_Evasion", "Item_Pierce", "Item_Sasuke", "Item_Weapon3"}
 behaviorLib.LateItems = 
-	{"Item_DaemonicBreastplate", "Item_Immunity"}
+  {"Item_DaemonicBreastplate", "Item_Immunity"}
 
 local bSkillsValid = false
 function object:SkillBuild()
@@ -144,100 +144,107 @@ function behaviorLib.CustomHarassUtility(unit)
   if enemies_close == 1 then
     harass = harass + 20;
   end
+  if enemies_close > 1 then
+    return 0;
+  end
   return harass;
 end
 
 local function HarassHeroExecute(botBrain)
-	local bDebugEchos = false
-	--[[
-	if object.myName == "Bot1" then
-		bDebugEchos = true
-	end
-	--]]
+  local bDebugEchos = false
+  --[[
+  if object.myName == "Bot1" then
+    bDebugEchos = true
+  end
+  --]]
 
-	local unitSelf = core.unitSelf
-	local unitTarget = behaviorLib.heroTarget
-	local vecTargetPos = (unitTarget and unitTarget:GetPosition()) or nil
+  local unitSelf = core.unitSelf
+  local unitTarget = behaviorLib.heroTarget
+  local vecTargetPos = (unitTarget and unitTarget:GetPosition()) or nil
 
-	if bDebugEchos then BotEcho("Harassing "..((unitTarget~=nil and unitTarget:GetTypeName()) or "nil")) end
-	if unitTarget and vecTargetPos then
-		local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), vecTargetPos)
-		local nAttackRangeSq = core.GetAbsoluteAttackRangeToUnit(unitSelf, unitTarget, true)
+  if bDebugEchos then BotEcho("Harassing "..((unitTarget~=nil and unitTarget:GetTypeName()) or "nil")) end
+  if unitTarget and vecTargetPos then
+    local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), vecTargetPos)
+    local nAttackRangeSq = core.GetAbsoluteAttackRangeToUnit(unitSelf, unitTarget, true)
 
-		local itemGhostMarchers = core.itemGhostMarchers
+    local itemGhostMarchers = core.itemGhostMarchers
 
-		--BotEcho('canSee: '..tostring(core.CanSeeUnit(botBrain, unitTarget)))
-		--BotEcho(format("nDistSq: %d  nAttackRangeSq: %d   attackReady: %s  canSee: %s", nDistSq, nAttackRangeSq, tostring(unitSelf:IsAttackReady()), tostring(core.CanSeeUnit(botBrain, unitTarget))))
-		
-		--only attack when in nRange, so not to aggro towers/creeps until necessary, and move forward when attack is on cd
+    --BotEcho('canSee: '..tostring(core.CanSeeUnit(botBrain, unitTarget)))
+    --BotEcho(format("nDistSq: %d  nAttackRangeSq: %d   attackReady: %s  canSee: %s", nDistSq, nAttackRangeSq, tostring(unitSelf:IsAttackReady()), tostring(core.CanSeeUnit(botBrain, unitTarget))))
+    
+    --only attack when in nRange, so not to aggro towers/creeps until necessary, and move forward when attack is on cd
     if nDistSq < skills.dash:GetRange() * skills.dash:GetRange() * 2 * 2 and unitSelf:IsAttackReady() and core.CanSeeUnit(botBrain, unitTarget) then
-			local bInTowerRange = core.NumberElements(core.GetTowersThreateningUnit(unitSelf)) > 0
-			local bShouldDive = behaviorLib.lastHarassUtil >= behaviorLib.diveThreshold
-			
-			if bDebugEchos then BotEcho(format("inTowerRange: %s  bShouldDive: %s", tostring(bInTowerRange), tostring(bShouldDive))) end
-			
-			if not bInTowerRange or bShouldDive then
-				if bDebugEchos then BotEcho("ATTAKIN NOOBS! divin: "..tostring(bShouldDive)) end
+      local bInTowerRange = core.NumberElements(core.GetTowersThreateningUnit(unitSelf)) > 0
+      local bShouldDive = behaviorLib.lastHarassUtil >= behaviorLib.diveThreshold
+      
+      if bDebugEchos then BotEcho(format("inTowerRange: %s  bShouldDive: %s", tostring(bInTowerRange), tostring(bShouldDive))) end
+      
+      if not bInTowerRange or bShouldDive then
+        if bDebugEchos then BotEcho("ATTAKIN NOOBS! divin: "..tostring(bShouldDive)) end
         if not skills.dash:CanActivate() and nDistSq < nAttackRangeSq then
           if skills.rock:CanActivate() then
             core.OrderAbility(botBrain, skills.rock);
             return;
           end
-				  core.OrderAttackClamp(botBrain, unitSelf, unitTarget)
+          if skills.pole:CanActivate() then
+            core.OrderAbilityEntity(botBrain, skills.pole, unitTarget);
+            return;
+          end
+          core.OrderAttackClamp(botBrain, unitSelf, unitTarget)
         elseif skills.dash:CanActivate() then
           core.OrderAbility(botBrain, skills.dash);
         end   
-			end
-		else
-			if bDebugEchos then BotEcho("MOVIN OUT") end
-			local vecDesiredPos = vecTargetPos
-			local bUseTargetPosition = true
+      end
+    else
+      if bDebugEchos then BotEcho("MOVIN OUT") end
+      local vecDesiredPos = vecTargetPos
+      local bUseTargetPosition = true
 
-			--leave some space if we are ranged
-			if unitSelf:GetAttackRange() > 200 then
-				vecDesiredPos = vecTargetPos + Vector3.Normalize(unitSelf:GetPosition() - vecTargetPos) * behaviorLib.rangedHarassBuffer
-				bUseTargetPosition = false
-			end
+      --leave some space if we are ranged
+      if unitSelf:GetAttackRange() > 200 then
+        vecDesiredPos = vecTargetPos + Vector3.Normalize(unitSelf:GetPosition() - vecTargetPos) * behaviorLib.rangedHarassBuffer
+        bUseTargetPosition = false
+      end
 
-			if itemGhostMarchers and itemGhostMarchers:CanActivate() then
-				local bSuccess = core.OrderItemClamp(botBrain, unitSelf, itemGhostMarchers)
-				if bSuccess then
-					return
-				end
-			end
-			
-			local bChanged = false
-			local bWellDiving = false
-			vecDesiredPos, bChanged, bWellDiving = core.AdjustMovementForTowerLogic(vecDesiredPos)
-			
-			if bDebugEchos then BotEcho("Move - bChanged: "..tostring(bChanged).."  bWellDiving: "..tostring(bWellDiving)) end
-			
-			if not bWellDiving then
-				if behaviorLib.lastHarassUtil < behaviorLib.diveThreshold then
-					if bDebugEchos then BotEcho("DON'T DIVE!") end
-					
-					if core.NumberElements(core.GetTowersThreateningPosition(vecDesiredPos, nil, core.myTeam)) > 0 then
-						return false
-					end
-									
-					if bUseTargetPosition and not bChanged then
-						core.OrderMoveToUnitClamp(botBrain, unitSelf, unitTarget, false)
-					else
-						core.OrderMoveToPosAndHoldClamp(botBrain, unitSelf, vecDesiredPos, false)
-					end
-				else
-					if bDebugEchos then BotEcho("DIVIN Tower! util: "..behaviorLib.lastHarassUtil.." > "..behaviorLib.diveThreshold) end
-					core.OrderMoveToPosClamp(botBrain, unitSelf, vecDesiredPos, false)
-				end
-			else
-				return false
-			end
+      if itemGhostMarchers and itemGhostMarchers:CanActivate() then
+        local bSuccess = core.OrderItemClamp(botBrain, unitSelf, itemGhostMarchers)
+        if bSuccess then
+          return
+        end
+      end
+      
+      local bChanged = false
+      local bWellDiving = false
+      vecDesiredPos, bChanged, bWellDiving = core.AdjustMovementForTowerLogic(vecDesiredPos)
+      
+      if bDebugEchos then BotEcho("Move - bChanged: "..tostring(bChanged).."  bWellDiving: "..tostring(bWellDiving)) end
+      
+      if not bWellDiving then
+        if behaviorLib.lastHarassUtil < behaviorLib.diveThreshold then
+          if bDebugEchos then BotEcho("DON'T DIVE!") end
+          
+          if core.NumberElements(core.GetTowersThreateningPosition(vecDesiredPos, nil, core.myTeam)) > 0 then
+            return false
+          end
+                  
+          if bUseTargetPosition and not bChanged then
+            core.OrderMoveToUnitClamp(botBrain, unitSelf, unitTarget, false)
+          else
+            core.OrderMoveToPosAndHoldClamp(botBrain, unitSelf, vecDesiredPos, false)
+          end
+        else
+          if bDebugEchos then BotEcho("DIVIN Tower! util: "..behaviorLib.lastHarassUtil.." > "..behaviorLib.diveThreshold) end
+          core.OrderMoveToPosClamp(botBrain, unitSelf, vecDesiredPos, false)
+        end
+      else
+        return false
+      end
 
-			--core.DrawXPosition(vecDesiredPos, 'blue')
-		end
-	else
-		return false
-	end
+      --core.DrawXPosition(vecDesiredPos, 'blue')
+    end
+  else
+    return false
+  end
 end
 
 behaviorLib.HarassHeroBehavior = {}
@@ -293,11 +300,10 @@ local function KillUtility(botBrain)
   for _, unit in pairs(core.localUnits["EnemyHeroes"]) do
     local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), unit:GetPosition());
     if nDistSq < skills.dash:GetRange() * skills.dash:GetRange() then
-		  local nAttackRangeSq = core.GetAbsoluteAttackRangeToUnit(unitSelf, unitTarget, true)
+      local nAttackRangeSq = core.GetAbsoluteAttackRangeToUnit(unitSelf, unitTarget, true)
       local dmg = (1 - unit:GetPhysicalResistance()) * physical_dmg + (1 - unit:GetMagicResistance()) * magic_dmg;
       if dmg >= unit:GetHealth() then
         behaviorLib.herotarget = unit;
-        BotEcho("LET'S DO THIS!");
         return 999;
       end
     end
@@ -338,133 +344,133 @@ KillBehavior["Name"] = "Kill"
 tinsert(behaviorLib.tBehaviors, KillBehavior)
 
 local function GetAttackDamageMinOnCreep(unitCreepTarget)
-	local unitSelf = core.unitSelf
-	local nDamageMin = unitSelf:GetAttackDamageMax(); --core.GetFinalAttackDamageAverage(unitSelf)
-				
-	if core.itemHatchet then
-		nDamageMin = nDamageMin * core.itemHatchet.creepDamageMul
-	end	
+  local unitSelf = core.unitSelf
+  local nDamageMin = unitSelf:GetAttackDamageMax(); --core.GetFinalAttackDamageAverage(unitSelf)
+        
+  if core.itemHatchet then
+    nDamageMin = nDamageMin * core.itemHatchet.creepDamageMul
+  end  
 
-	return nDamageMin
+  return nDamageMin
 end
 
 local function LastHitUtility(botBrain)
-	local unitSelf = core.unitSelf
+  local unitSelf = core.unitSelf
   if not unitSelf:IsAttackReady() then
     return 0;
   end
-	local tEnemies = core.localUnits["Enemies"]
-	local unitWeakestMinion = nil
-	local nMinionHP = 99999999
-	local nUtility = 0
-	for _, unit in pairs(tEnemies) do
-		if not unit:IsInvulnerable() and not unit:IsHero() and unit:GetOwnerPlayerID() == nil then
+  local tEnemies = core.localUnits["Enemies"]
+  local unitWeakestMinion = nil
+  local nMinionHP = 99999999
+  local nUtility = 0
+  for _, unit in pairs(tEnemies) do
+    if not unit:IsInvulnerable() and not unit:IsHero() and unit:GetOwnerPlayerID() == nil then
       local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), unit:GetPosition())
       local nAttackRangeSq = core.GetAbsoluteAttackRangeToUnit(unitSelf, unit, true) 
       local nTempHP = unit:GetHealth()
-			if nDistSq < nAttackRangeSq * 3 * 3 and nTempHP < nMinionHP then
-				unitWeakestMinion = unit
-				nMinionHP = nTempHP
-			end
-		end
-	end
-	
-	if unitWeakestMinion ~= nil then
-		core.unitMinionTarget = unitWeakestMinion
-		--minion lh > creep lh
-		local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), unitWeakestMinion:GetPosition())
-		local nAttackRangeSq = core.GetAbsoluteAttackRangeToUnit(unitSelf, unitWeakestMinion, true) * 3 * 3
-		if nDistSq < nAttackRangeSq then
-			if nMinionHP <= GetAttackDamageMinOnCreep(unitWeakestMinion) then --core.GetFinalAttackDamageAverage(unitSelf) * (1 - unitWeakestMinion:GetPhysicalResistance()) then
-				-- LastHit Minion
-				nUtility = 100 --25
-			else
-				-- Harass Minion
-				-- PositionSelf 20 and AttackCreeps 21
-				-- positonSelf < minionHarass < creep lh || deny
-				--nUtility = 80 --20.5
-			end
-		end
-	end
-	return nUtility
+      if nDistSq < nAttackRangeSq * 3 * 3 and nTempHP < nMinionHP then
+        unitWeakestMinion = unit
+        nMinionHP = nTempHP
+      end
+    end
+  end
+  
+  if unitWeakestMinion ~= nil then
+    core.unitMinionTarget = unitWeakestMinion
+    --minion lh > creep lh
+    local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), unitWeakestMinion:GetPosition())
+    local nAttackRangeSq = core.GetAbsoluteAttackRangeToUnit(unitSelf, unitWeakestMinion, true) * 3 * 3
+    if nDistSq < nAttackRangeSq then
+      if nMinionHP <= GetAttackDamageMinOnCreep(unitWeakestMinion) then --core.GetFinalAttackDamageAverage(unitSelf) * (1 - unitWeakestMinion:GetPhysicalResistance()) then
+        -- LastHit Minion
+        nUtility = 100 --25
+      else
+        -- Harass Minion
+        -- PositionSelf 20 and AttackCreeps 21
+        -- positonSelf < minionHarass < creep lh || deny
+        --nUtility = 80 --20.5
+      end
+    end
+  end
+  return nUtility
 end
 
 local nLastMoveToCreepID = nil
 local function LastHitExecute(botBrain)
-	local bActionTaken = false
-	local unitSelf = core.unitSelf
-	local sCurrentBehavior = core.GetCurrentBehaviorName(botBrain)
+  local bActionTaken = false
+  local unitSelf = core.unitSelf
+  local sCurrentBehavior = core.GetCurrentBehaviorName(botBrain)
 
-	local unitCreepTarget = nil
-	if sCurrentBehavior == "AttackEnemyMinions" then
-		unitCreepTarget = core.unitMinionTarget
-	else
-		unitCreepTarget = core.unitCreepTarget
-	end
+  local unitCreepTarget = nil
+  if sCurrentBehavior == "AttackEnemyMinions" then
+    unitCreepTarget = core.unitMinionTarget
+  else
+    unitCreepTarget = core.unitCreepTarget
+  end
 
-	if unitCreepTarget and core.CanSeeUnit(botBrain, unitCreepTarget) then      
-		--Get info about the target we are about to attack
-		local vecSelfPos = unitSelf:GetPosition()
-		local vecTargetPos = unitCreepTarget:GetPosition()
-		local nDistSq = Vector3.Distance2DSq(vecSelfPos, vecTargetPos)
-		local nAttackRangeSq = core.GetAbsoluteAttackRangeToUnit(unitSelf, unitCreepTarget, true)
+  if unitCreepTarget and core.CanSeeUnit(botBrain, unitCreepTarget) then      
+    --Get info about the target we are about to attack
+    local vecSelfPos = unitSelf:GetPosition()
+    local vecTargetPos = unitCreepTarget:GetPosition()
+    local nDistSq = Vector3.Distance2DSq(vecSelfPos, vecTargetPos)
+    local nAttackRangeSq = core.GetAbsoluteAttackRangeToUnit(unitSelf, unitCreepTarget, true)
 
-		-- Use Loggers Hatchet
-		local itemHatchet = core.itemHatchet
-		--nested if for clarity and to reduce optimization which is negligible.
-		if itemHatchet and itemHatchet:CanActivate() then --valid hatchet
-			if unitCreepTarget:GetTeam() ~= unitSelf:GetTeam() and core.IsLaneCreep(unitCreepTarget) then --valid creep
-				if core.GetAttackSequenceProgress(unitSelf) ~= "windup" and nDistSq < (600 * 600) then --valid positioning
-					if GetAttackDamageMinOnCreep(unitCreepTarget) > core.unitCreepTarget:GetHealth() then --valid HP
-						bActionTaken = botBrain:OrderItemEntity(itemHatchet.object or itemHatchet, unitCreepTarget.object or unitCreepTarget, false)
-					end
-				end
-			end
-		end
-		if bActionTaken then
+    -- Use Loggers Hatchet
+    local itemHatchet = core.itemHatchet
+    --nested if for clarity and to reduce optimization which is negligible.
+    if itemHatchet and itemHatchet:CanActivate() then --valid hatchet
+      if unitCreepTarget:GetTeam() ~= unitSelf:GetTeam() and core.IsLaneCreep(unitCreepTarget) then --valid creep
+        if core.GetAttackSequenceProgress(unitSelf) ~= "windup" and nDistSq < (600 * 600) then --valid positioning
+          if GetAttackDamageMinOnCreep(unitCreepTarget) > core.unitCreepTarget:GetHealth() then --valid HP
+            bActionTaken = botBrain:OrderItemEntity(itemHatchet.object or itemHatchet, unitCreepTarget.object or unitCreepTarget, false)
+          end
+        end
+      end
+    end
+    if bActionTaken then
       return true;
-		end
-		--Only attack if, by the time our attack reaches the target
-		-- the damage done by other sources brings the target's health
-		-- below our minimum damage, and we are in range and can attack right now-		
-		if nDistSq <= nAttackRangeSq and unitSelf:IsAttackReady() then
-			if unitSelf:GetAttackType() == "melee" then
-				local nDamageMin = GetAttackDamageMinOnCreep(unitCreepTarget)
+    end
+    --Only attack if, by the time our attack reaches the target
+    -- the damage done by other sources brings the target's health
+    -- below our minimum damage, and we are in range and can attack right now-    
+    if nDistSq <= nAttackRangeSq and unitSelf:IsAttackReady() then
+      if unitSelf:GetAttackType() == "melee" then
+        local nDamageMin = GetAttackDamageMinOnCreep(unitCreepTarget)
 
-				if unitCreepTarget:GetHealth() <= nDamageMin then
-					if core.GetAttackSequenceProgress(unitSelf) ~= "windup" then
-						bActionTaken = core.OrderAttack(botBrain, unitSelf, unitCreepTarget)
-					else
-						bActionTaken = true		
-					end
-				else
-					bActionTaken = core.OrderHoldClamp(botBrain, unitSelf, false)
-				end
-			else
-				bActionTaken = core.OrderAttackClamp(botBrain, unitSelf, unitCreepTarget)
-			end
-		else
-			if unitSelf:GetAttackType() == "melee" then
-				if core.GetLastBehaviorName(botBrain) ~= behaviorLib.AttackCreepsBehavior.Name and unitCreepTarget:GetUniqueID() ~= behaviorLib.nLastMoveToCreepID then
-					behaviorLib.nLastMoveToCreepID = unitCreepTarget:GetUniqueID()
-					--If melee, move closer.
-					local vecDesiredPos = core.AdjustMovementForTowerLogic(vecTargetPos)
-					bActionTaken = core.OrderMoveToPosAndHoldClamp(botBrain, unitSelf, vecDesiredPos, false)
-				end
-			else
-				--If ranged, get within 70% of attack range if not already
-				-- This will decrease travel time for the projectile
-				if (nDistSq > nAttackRangeSq * 0.5) then 
-					local vecDesiredPos = core.AdjustMovementForTowerLogic(vecTargetPos)
-					bActionTaken = core.OrderMoveToPosClamp(botBrain, unitSelf, vecDesiredPos, false)
-				--If within a good range, just hold tight
-				else
-					bActionTaken = core.OrderHoldClamp(botBrain, unitSelf, false)
-				end
-			end
-		end
-	end
-	return bActionTaken
+        if unitCreepTarget:GetHealth() <= nDamageMin then
+          if core.GetAttackSequenceProgress(unitSelf) ~= "windup" then
+            bActionTaken = core.OrderAttack(botBrain, unitSelf, unitCreepTarget)
+          else
+            bActionTaken = true    
+          end
+        else
+          bActionTaken = core.OrderHoldClamp(botBrain, unitSelf, false)
+        end
+      else
+        bActionTaken = core.OrderAttackClamp(botBrain, unitSelf, unitCreepTarget)
+      end
+    else
+      if unitSelf:GetAttackType() == "melee" then
+        if core.GetLastBehaviorName(botBrain) ~= behaviorLib.AttackCreepsBehavior.Name and unitCreepTarget:GetUniqueID() ~= behaviorLib.nLastMoveToCreepID then
+          behaviorLib.nLastMoveToCreepID = unitCreepTarget:GetUniqueID()
+          --If melee, move closer.
+          local vecDesiredPos = core.AdjustMovementForTowerLogic(vecTargetPos)
+          bActionTaken = core.OrderMoveToPosAndHoldClamp(botBrain, unitSelf, vecDesiredPos, false)
+        end
+      else
+        --If ranged, get within 70% of attack range if not already
+        -- This will decrease travel time for the projectile
+        if (nDistSq > nAttackRangeSq * 0.5) then 
+          local vecDesiredPos = core.AdjustMovementForTowerLogic(vecTargetPos)
+          bActionTaken = core.OrderMoveToPosClamp(botBrain, unitSelf, vecDesiredPos, false)
+        --If within a good range, just hold tight
+        else
+          bActionTaken = core.OrderHoldClamp(botBrain, unitSelf, false)
+        end
+      end
+    end
+  end
+  return bActionTaken
 end
 
 local LastHitBehaviour = {}
