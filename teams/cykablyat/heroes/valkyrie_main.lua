@@ -56,6 +56,19 @@ core.tLanePreferences = {Jungle = 0, Mid = 5, ShortSolo = 4, LongSolo = 2, Short
 --------------------------------
 -- Skills
 --------------------------------
+behaviorLib.tBehaviors = {}
+tinsert(behaviorLib.tBehaviors, behaviorLib.PickRuneBehavior)
+tinsert(behaviorLib.tBehaviors, behaviorLib.PushBehavior)
+tinsert(behaviorLib.tBehaviors, behaviorLib.HealAtWellBehavior)
+tinsert(behaviorLib.tBehaviors, behaviorLib.AttackCreepsBehavior)
+tinsert(behaviorLib.tBehaviors, behaviorLib.DontBreakChannelBehavior)
+tinsert(behaviorLib.tBehaviors, behaviorLib.PositionSelfBehavior)
+tinsert(behaviorLib.tBehaviors, behaviorLib.RetreatFromThreatBehavior)
+tinsert(behaviorLib.tBehaviors, behaviorLib.PreGameBehavior)
+tinsert(behaviorLib.tBehaviors, behaviorLib.ShopBehavior)
+tinsert(behaviorLib.tBehaviors, behaviorLib.StashBehavior)
+tinsert(behaviorLib.tBehaviors, behaviorLib.HarassHeroBehavior)
+
 local bSkillsValid = false
 function object:SkillBuild()
   local unitSelf = self.core.unitSelf

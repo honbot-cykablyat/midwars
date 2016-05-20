@@ -56,6 +56,20 @@ core.tLanePreferences = {Jungle = 0, Mid = 5, ShortSolo = 0, LongSolo = 0, Short
 --------------------------------
 -- Skills
 --------------------------------
+
+behaviorLib.tBehaviors = {}
+tinsert(behaviorLib.tBehaviors, behaviorLib.PickRuneBehavior)
+tinsert(behaviorLib.tBehaviors, behaviorLib.PushBehavior)
+tinsert(behaviorLib.tBehaviors, behaviorLib.HealAtWellBehavior)
+tinsert(behaviorLib.tBehaviors, behaviorLib.AttackCreepsBehavior)
+tinsert(behaviorLib.tBehaviors, behaviorLib.DontBreakChannelBehavior)
+tinsert(behaviorLib.tBehaviors, behaviorLib.PositionSelfBehavior)
+tinsert(behaviorLib.tBehaviors, behaviorLib.RetreatFromThreatBehavior)
+tinsert(behaviorLib.tBehaviors, behaviorLib.PreGameBehavior)
+tinsert(behaviorLib.tBehaviors, behaviorLib.ShopBehavior)
+tinsert(behaviorLib.tBehaviors, behaviorLib.StashBehavior)
+tinsert(behaviorLib.tBehaviors, behaviorLib.HarassHeroBehavior)
+
 local bSkillsValid = false
 function object:SkillBuild()
   local unitSelf = self.core.unitSelf
@@ -92,6 +106,11 @@ function object:SkillBuild()
   end
 end
 
+behaviorLib.StartingItems = {"Item_ManaBattery", "2 Item_MinorTotem", "Item_HealthPotion", "Item_RunesOfTheBlight"}
+behaviorLib.LaneItems = {"Item_Marchers", "Item_EnhancedMarchers", "Item_PowerSupply"}
+behaviorLib.MidItems = {"Item_PortalKey", "Item_MagicArmor2"}
+behaviorLib.LateItems = {"Item_BehemothsHeart"}
+
 ------------------------------------------------------
 --            onthink override                      --
 -- Called every bot tick, custom onthink code here  --
@@ -114,7 +133,7 @@ end
 object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride
 
-function HasEnemiesInRange(unit, range)
+local function HasEnemiesInRange(unit, range)
   local enemies = core.CopyTable(core.localUnits["EnemyHeroes"])
   local rangeSq = range * range
   local myPos = unit:GetPosition()
@@ -125,6 +144,142 @@ function HasEnemiesInRange(unit, range)
   end
   return false
 end
+
+local function GetAttackDamageMinOnCreep(unitCreepTarget)
+	local unitSelf = core.unitSelf
+	local nDamageMin = unitSelf:GetAttackDamageMax(); --core.GetFinalAttackDamageAverage(unitSelf)
+
+	if core.itemHatchet then
+		nDamageMin = nDamageMin * core.itemHatchet.creepDamageMul
+	end
+
+	return nDamageMin
+end
+
+local function LastHitUtility(botBrain)
+	local unitSelf = core.unitSelf
+  if not unitSelf:IsAttackReady() then
+    return 0;
+  end
+	local tEnemies = core.localUnits["Enemies"]
+	local unitWeakestMinion = nil
+	local nMinionHP = 99999999
+	local nUtility = 0
+	for _, unit in pairs(tEnemies) do
+		if not unit:IsInvulnerable() and not unit:IsHero() and unit:GetOwnerPlayerID() == nil then
+      local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), unit:GetPosition())
+      local nAttackRangeSq = core.GetAbsoluteAttackRangeToUnit(unitSelf, unit, true)
+      local nTempHP = unit:GetHealth()
+			if nDistSq < nAttackRangeSq * 3 * 3 and nTempHP < nMinionHP then
+				unitWeakestMinion = unit
+				nMinionHP = nTempHP
+			end
+		end
+	end
+
+	if unitWeakestMinion ~= nil then
+		core.unitMinionTarget = unitWeakestMinion
+		--minion lh > creep lh
+		local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), unitWeakestMinion:GetPosition())
+		local nAttackRangeSq = core.GetAbsoluteAttackRangeToUnit(unitSelf, unitWeakestMinion, true) * 3 * 3
+		if nDistSq < nAttackRangeSq then
+			if nMinionHP <= GetAttackDamageMinOnCreep(unitWeakestMinion) then --core.GetFinalAttackDamageAverage(unitSelf) * (1 - unitWeakestMinion:GetPhysicalResistance()) then
+				-- LastHit Minion
+				nUtility = 100 --25
+			else
+				-- Harass Minion
+				-- PositionSelf 20 and AttackCreeps 21
+				-- positonSelf < minionHarass < creep lh || deny
+				--nUtility = 80 --20.5
+			end
+		end
+	end
+	return nUtility
+end
+
+local nLastMoveToCreepID = nil
+local function LastHitExecute(botBrain)
+	local bActionTaken = false
+	local unitSelf = core.unitSelf
+	local sCurrentBehavior = core.GetCurrentBehaviorName(botBrain)
+
+	local unitCreepTarget = nil
+	if sCurrentBehavior == "AttackEnemyMinions" then
+		unitCreepTarget = core.unitMinionTarget
+	else
+		unitCreepTarget = core.unitCreepTarget
+	end
+
+	if unitCreepTarget and core.CanSeeUnit(botBrain, unitCreepTarget) then
+		--Get info about the target we are about to attack
+		local vecSelfPos = unitSelf:GetPosition()
+		local vecTargetPos = unitCreepTarget:GetPosition()
+		local nDistSq = Vector3.Distance2DSq(vecSelfPos, vecTargetPos)
+		local nAttackRangeSq = core.GetAbsoluteAttackRangeToUnit(unitSelf, unitCreepTarget, true)
+
+		-- Use Loggers Hatchet
+		local itemHatchet = core.itemHatchet
+		--nested if for clarity and to reduce optimization which is negligible.
+		if itemHatchet and itemHatchet:CanActivate() then --valid hatchet
+			if unitCreepTarget:GetTeam() ~= unitSelf:GetTeam() and core.IsLaneCreep(unitCreepTarget) then --valid creep
+				if core.GetAttackSequenceProgress(unitSelf) ~= "windup" and nDistSq < (600 * 600) then --valid positioning
+					if GetAttackDamageMinOnCreep(unitCreepTarget) > core.unitCreepTarget:GetHealth() then --valid HP
+						bActionTaken = botBrain:OrderItemEntity(itemHatchet.object or itemHatchet, unitCreepTarget.object or unitCreepTarget, false)
+					end
+				end
+			end
+		end
+		if bActionTaken then
+      return true;
+		end
+		--Only attack if, by the time our attack reaches the target
+		-- the damage done by other sources brings the target's health
+		-- below our minimum damage, and we are in range and can attack right now-
+		if nDistSq <= nAttackRangeSq and unitSelf:IsAttackReady() then
+			if unitSelf:GetAttackType() == "melee" then
+				local nDamageMin = GetAttackDamageMinOnCreep(unitCreepTarget)
+
+				if unitCreepTarget:GetHealth() <= nDamageMin then
+					if core.GetAttackSequenceProgress(unitSelf) ~= "windup" then
+						bActionTaken = core.OrderAttack(botBrain, unitSelf, unitCreepTarget)
+					else
+						bActionTaken = true
+					end
+				else
+					bActionTaken = core.OrderHoldClamp(botBrain, unitSelf, false)
+				end
+			else
+				bActionTaken = core.OrderAttackClamp(botBrain, unitSelf, unitCreepTarget)
+			end
+		else
+			if unitSelf:GetAttackType() == "melee" then
+				if core.GetLastBehaviorName(botBrain) ~= behaviorLib.AttackCreepsBehavior.Name and unitCreepTarget:GetUniqueID() ~= behaviorLib.nLastMoveToCreepID then
+					behaviorLib.nLastMoveToCreepID = unitCreepTarget:GetUniqueID()
+					--If melee, move closer.
+					local vecDesiredPos = core.AdjustMovementForTowerLogic(vecTargetPos)
+					bActionTaken = core.OrderMoveToPosAndHoldClamp(botBrain, unitSelf, vecDesiredPos, false)
+				end
+			else
+				--If ranged, get within 70% of attack range if not already
+				-- This will decrease travel time for the projectile
+				if (nDistSq > nAttackRangeSq * 0.5) then
+					local vecDesiredPos = core.AdjustMovementForTowerLogic(vecTargetPos)
+					bActionTaken = core.OrderMoveToPosClamp(botBrain, unitSelf, vecDesiredPos, false)
+				--If within a good range, just hold tight
+				else
+					bActionTaken = core.OrderHoldClamp(botBrain, unitSelf, false)
+				end
+			end
+		end
+	end
+	return bActionTaken
+end
+
+local LastHitBehaviour = {}
+LastHitBehaviour["Utility"] = LastHitUtility
+LastHitBehaviour["Execute"] = LastHitExecute
+LastHitBehaviour["Name"] = "LastHit"
+tinsert(behaviorLib.tBehaviors, LastHitBehaviour)
 
 ----------------------------------------------
 --            oncombatevent override        --
@@ -153,8 +308,8 @@ local function CustomHarassUtilityOverride(hero)
 end
 behaviorLib.CustomHarassUtility = CustomHarassUtilityOverride
 
-function predict_location(enemy)
-  local unitSelf = self.core.unitSelf
+local function predict_location(enemy)
+  local unitSelf = core.unitSelf
   local enemyHeading = enemy:GetHeading()
   local selfPos = unitSelf.GetPosition()
   local enemyPos = unitSelf.GetPosition()
@@ -181,12 +336,12 @@ function predict_location(enemy)
   end
 end
 
-local effective_skills = {0, 2, 1};
-local combo = {0, 2, 1, 0, 1}; -- dash, rock, pole, dash, pole
+local effective_skills = {0, 3};
+local combo = {0, 3};
 
-function comboViable()
+local function comboViable()
   local unitSelf = core.unitSelf
-  local mana = 0.5 * skills.pole:GetManaCost();
+  local mana = 0
   for _, v in pairs(effective_skills) do
     local skill = unitSelf:GetAbility(v)
     if not skill:CanActivate() then
@@ -198,7 +353,7 @@ function comboViable()
 end
 
 local comboState = 1;
-function KillUtility(botBrain)
+local function KillUtility(botBrain)
   local unitSelf = core.unitSelf;
   if comboState > 1 then
     return 999;
@@ -206,15 +361,15 @@ function KillUtility(botBrain)
   if not comboViable() then
     return 0;
   end
-  local physical_dmg = 2 * (dash_dmg[skills.dash:GetLevel()] + core.GetFinalAttackDamageAverage(unitSelf)) + 1.5 * pole_dmg[skills.pole:GetLevel()];
-  local magic_dmg = rock_dmg[skills.rock:GetLevel()];
-  for _, unit in pairs(core.AssessLocalUnits(object, unitSelf:GetPosition(), skills.dash:GetRange()).EnemyHeroes) do
-    local dmg = (1 - unit:GetPhysicalResistance()) * physical_dmg + (1 - unit:GetMagicResistance()) * magic_dmg;
-    if dmg >= unit:GetHealth() then
-      behaviorLib.herotarget = unit;
-      BotEcho("LET'S DO THIS!");
-      return 999;
-    end 
+  for _, unit in pairs(core.AssessLocalUnits(object, unitSelf:GetPosition(), skills.hook:GetRange()).EnemyHeroes) do
+    local location = predict_location(unit)
+    if not location == nil then
+      if generics.IsFreeLine(unitSelf.GetPosition, location) then
+        behaviorLib.herotarget = unit;
+        BotEcho("LET'S DO THIS!");
+        return 999;
+      end
+    end
   end
   return 0;
 end
@@ -223,18 +378,18 @@ local lastCast = 0;
 local wait = 0;
 function KillExecute(botBrain)
   local unitSelf = core.unitSelf
-  if comboState >= 5 then 
+  if comboState >= 3 then
     comboState = 1;
     lastCast = 0;
     return true;
   end
 
   local skill = unitSelf:GetAbility(combo[comboState])
-  if skill and skill:CanActivate() and (HoN:GetMatchTime() - lastCast) > wait then
-    BotEcho(skill:GetTypeName());
-    wait = skill:GetAdjustedCastTime();
-    lastCast = HoN:GetMatchTime();
-    botBrain:OrderAbility(skill, behaviorLib.herotarget);
+  if skill and skill:CanActivate() and comboState == 1 then
+    core.OrderAbilityPosition(botBrain, hook, predict_location(behaviorLib.herotarget))
+    comboState = comboState + 1;
+  elseif skill and skill:CanActivate and HasEnemiesInRange(unitSelf, 160) comboState == 2 then
+    core.OrderAbility()
     comboState = comboState + 1;
   end
   return false;
