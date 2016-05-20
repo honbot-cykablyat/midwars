@@ -336,18 +336,16 @@ local function predict_location(enemy)
   end
 end
 
-local effective_skills = {0, 3};
-local combo = {0, 3};
+local combo = {skills.hook, skills.ulti};
 
 local function comboViable()
   local unitSelf = core.unitSelf
   local mana = 0
-  for _, v in pairs(effective_skills) do
-    local skill = unitSelf:GetAbility(v)
-    if not skill:CanActivate() then
+  for _, v in pairs(combo) do
+    if not v:CanActivate() then
       return false;
     end
-    mana = mana + skill:GetManaCost();
+    mana = mana + v:GetManaCost();
   end
   return mana < core.unitSelf:GetMana();
 end
@@ -388,7 +386,7 @@ function KillExecute(botBrain)
   if skill and skill:CanActivate() and comboState == 1 then
     core.OrderAbilityPosition(botBrain, hook, predict_location(behaviorLib.herotarget))
     comboState = comboState + 1;
-  elseif skill and skill:CanActivate and HasEnemiesInRange(unitSelf, 160) comboState == 2 then
+  elseif skill and skill:CanActivate() and HasEnemiesInRange(unitSelf, 160) and comboState == 2 then
     core.OrderAbility()
     comboState = comboState + 1;
   end
