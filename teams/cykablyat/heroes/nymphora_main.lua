@@ -33,8 +33,9 @@ runfile "bots/botbraincore.lua"
 runfile "bots/eventsLib.lua"
 runfile "bots/metadata.lua"
 runfile "bots/behaviorLib.lua"
+runfile "bots/teams/cykablyat/generics.lua"
 
-local core, eventsLib, behaviorLib, metadata, skills = object.core, object.eventsLib, object.behaviorLib, object.metadata, object.skills
+local generics, core, eventsLib, behaviorLib, metadata, skills = object.generics, object.core, object.eventsLib, object.behaviorLib, object.metadata, object.skills
 
 local print, ipairs, pairs, string, table, next, type, tinsert, tremove, tsort, format, tostring, tonumber, strfind, strsub
   = _G.print, _G.ipairs, _G.pairs, _G.string, _G.table, _G.next, _G.type, _G.table.insert, _G.table.remove, _G.table.sort, _G.string.format, _G.tostring, _G.tonumber, _G.string.find, _G.string.sub
@@ -57,7 +58,6 @@ core.tLanePreferences = {Jungle = 0, Mid = 0, ShortSolo = 0, LongSolo = 0, Short
 -- Skills
 --------------------------------
 behaviorLib.tBehaviors = {}
-tinsert(behaviorLib.tBehaviors, behaviorLib.PickRuneBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.PushBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.HealAtWellBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.AttackCreepsBehavior)
@@ -67,7 +67,16 @@ tinsert(behaviorLib.tBehaviors, behaviorLib.RetreatFromThreatBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.PreGameBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.ShopBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.StashBehavior)
-tinsert(behaviorLib.tBehaviors, behaviorLib.HarassHeroBehavior)
+tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
+
+behaviorLib.StartingItems = 
+  {"Item_CrushingClaws", "Item_GuardianRing", "Item_ManaBattery", "Item_MinorTotem"}
+behaviorLib.LaneItems = 
+  {"Item_EnhancedMarchers", "Item_ManaRegen3", "Item_Marchers", "Item_MysticVestments"}
+behaviorLib.MidItems = 
+  {"Item_PortalKey", "Item_Silence", "Item_ManaBurn1", "Item_Morph"}
+behaviorLib.LateItems = 
+  {"Item_Astrolabe", "Item_BarrierIdol", "Item_FrostfieldPlate"}
 
 local bSkillsValid = false
 function object:SkillBuild()
@@ -91,54 +100,18 @@ function object:SkillBuild()
     return
   end
 
-  if skills.ulti:CanLevelUp() then
-    skills.ulti:LevelUp()
-  elseif skills.heal:CanLevelUp() then
-    skills.heal:LevelUp()
-  elseif skills.mana:CanLevelUp() then
-    skills.mana:LevelUp()
-  elseif skills.stun:CanLevelUp() then
-    skills.stun:LevelUp()
+   local skillarray = {skills.heal, skills.stun, skills.heal, skills.stun, skills.heal, skills.stun, skills.heal, skills.stun, skills.ulti, skills.mana, skills.ulti, skills.mana, skills.mana, skills.mana, skills.attributeBoost, skills.ulti}
+
+  local lvSkill = skillarray[unitSelf:GetLevel()];
+  if lvSkill then
+    if lvSkill:CanLevelUp() then
+      lvSkill:LevelUp()
+    end
   else
-    skills.attributeBoost:LevelUp()
-  end
-end
-
-function sign(x)
-  return (x<0 and -1) or 1
-end
-
-function behaviorLib.CustomHarassUtility(unit)
-  return 0
-  local unitSelf = core.unitSelf;
-  local level = unitSelf:GetLevel() - unit:GetLevel();
-  level = sign(level) * level * level;
-  local mana = unitSelf:GetMana() / skills.stun:GetManaCost() * 3;
-  local health = unitSelf:GetHealthPercent() * 7 + (1 - unit:GetHealthPercent()) * 6;
-  local cds = 0;
-  for _, skill in pairs(skills) do
-    if skill:CanActivate() then
-      cds = cds + 2;
+    if skills.attributeBoost:CanLevelUp() then
+      skills.attributeBoost:LevelUp()
     end
   end
-  local harass = level + mana + health + cds;
-  if core.GetClosestAllyTower(unitSelf:GetPosition(), 900) and core.GetClosestAllyTower(unit:GetPosition(), 1000) then
-    harass = harass + 20;
-  end
-  local enemies_close = 0;
-  for _, unit in pairs(core.localUnits["EnemyHeroes"]) do
-    local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), unit:GetPosition());
-    if nDistSq < 200 * 200 then
-      enemies_close = enemies_close + 1;
-    end
-  end
-  if enemies_close == 1 then
-    harass = harass + 20;
-  end
-  if enemies_close > 1 then
-    return 0;
-  end
-  return harass;
 end
 
 ------------------------------------------------------
@@ -155,142 +128,45 @@ end
 object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride
 
-
-local function GetAttackDamageMinOnCreep(unitCreepTarget)
-  local unitSelf = core.unitSelf
-  local nDamageMin = unitSelf:GetAttackDamageMax(); --core.GetFinalAttackDamageAverage(unitSelf)
-        
-  if core.itemHatchet then
-    nDamageMin = nDamageMin * core.itemHatchet.creepDamageMul
-  end  
-
-  return nDamageMin
+local stunTarget = nil
+local function StunUtility(botBrain)
+  if not skills.stun:CanActivate() then
+    return 0
+  end
+  local target = core.teamBotBrain:GetTeamTarget()
+  if target then
+    return 100
+  end
+  local health = 1
+  for _, enemy in pairs(core.localUnits["EnemyHeroes"]) do
+    if enemy:GetHealthPercent() < health then
+      target = enemy
+      health = enemy:GetHealthPercent()
+    end
+  end
+  if health < 0.80 then
+    stunTarget = target
+    return 25
+  end
+  if health < 0.70 then
+    stunTarget = target
+    return 100
+  end
+  return 0
 end
 
-local function LastHitUtility(botBrain)
-  local unitSelf = core.unitSelf
-  if not unitSelf:IsAttackReady() then
-    return 0;
+local function StunExecute(botBrain)
+  if skills.stun:CanActivate() then
+    core.OrderAbilityPosition(botBrain, skills.stun, stunTarget:GetPosition());
   end
-  local tEnemies = core.localUnits["Enemies"]
-  local unitWeakestMinion = nil
-  local nMinionHP = 99999999
-  local nUtility = 0
-  for _, unit in pairs(tEnemies) do
-    if not unit:IsInvulnerable() and not unit:IsHero() and unit:GetOwnerPlayerID() == nil then
-      local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), unit:GetPosition())
-      local nAttackRangeSq = core.GetAbsoluteAttackRangeToUnit(unitSelf, unit, true) 
-      local nTempHP = unit:GetHealth()
-      if nDistSq < nAttackRangeSq * 3 * 3 and nTempHP < nMinionHP then
-        unitWeakestMinion = unit
-        nMinionHP = nTempHP
-      end
-    end
-  end
-  
-  if unitWeakestMinion ~= nil then
-    core.unitMinionTarget = unitWeakestMinion
-    --minion lh > creep lh
-    local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), unitWeakestMinion:GetPosition())
-    local nAttackRangeSq = core.GetAbsoluteAttackRangeToUnit(unitSelf, unitWeakestMinion, true) * 3 * 3
-    if nDistSq < nAttackRangeSq then
-      if nMinionHP <= GetAttackDamageMinOnCreep(unitWeakestMinion) then --core.GetFinalAttackDamageAverage(unitSelf) * (1 - unitWeakestMinion:GetPhysicalResistance()) then
-        -- LastHit Minion
-        nUtility = 100 --25
-      else
-        -- Harass Minion
-        -- PositionSelf 20 and AttackCreeps 21
-        -- positonSelf < minionHarass < creep lh || deny
-        --nUtility = 80 --20.5
-      end
-    end
-  end
-  return nUtility
 end
 
-local nLastMoveToCreepID = nil
-local function LastHitExecute(botBrain)
-  local bActionTaken = false
-  local unitSelf = core.unitSelf
-  local sCurrentBehavior = core.GetCurrentBehaviorName(botBrain)
+local stunBehaviour = {}
+stunBehaviour["Utility"] = StunUtility
+stunBehaviour["Execute"] = StunExecute
+stunBehaviour["Name"] = "Stun"
+tinsert(behaviorLib.tBehaviors, stunBehaviour)
 
-  local unitCreepTarget = nil
-  if sCurrentBehavior == "AttackEnemyMinions" then
-    unitCreepTarget = core.unitMinionTarget
-  else
-    unitCreepTarget = core.unitCreepTarget
-  end
-
-  if unitCreepTarget and core.CanSeeUnit(botBrain, unitCreepTarget) then      
-    --Get info about the target we are about to attack
-    local vecSelfPos = unitSelf:GetPosition()
-    local vecTargetPos = unitCreepTarget:GetPosition()
-    local nDistSq = Vector3.Distance2DSq(vecSelfPos, vecTargetPos)
-    local nAttackRangeSq = core.GetAbsoluteAttackRangeToUnit(unitSelf, unitCreepTarget, true)
-
-    -- Use Loggers Hatchet
-    local itemHatchet = core.itemHatchet
-    --nested if for clarity and to reduce optimization which is negligible.
-    if itemHatchet and itemHatchet:CanActivate() then --valid hatchet
-      if unitCreepTarget:GetTeam() ~= unitSelf:GetTeam() and core.IsLaneCreep(unitCreepTarget) then --valid creep
-        if core.GetAttackSequenceProgress(unitSelf) ~= "windup" and nDistSq < (600 * 600) then --valid positioning
-          if GetAttackDamageMinOnCreep(unitCreepTarget) > core.unitCreepTarget:GetHealth() then --valid HP
-            bActionTaken = botBrain:OrderItemEntity(itemHatchet.object or itemHatchet, unitCreepTarget.object or unitCreepTarget, false)
-          end
-        end
-      end
-    end
-    if bActionTaken then
-      return true;
-    end
-    --Only attack if, by the time our attack reaches the target
-    -- the damage done by other sources brings the target's health
-    -- below our minimum damage, and we are in range and can attack right now-    
-    if nDistSq <= nAttackRangeSq and unitSelf:IsAttackReady() then
-      if unitSelf:GetAttackType() == "melee" then
-        local nDamageMin = GetAttackDamageMinOnCreep(unitCreepTarget)
-
-        if unitCreepTarget:GetHealth() <= nDamageMin then
-          if core.GetAttackSequenceProgress(unitSelf) ~= "windup" then
-            bActionTaken = core.OrderAttack(botBrain, unitSelf, unitCreepTarget)
-          else
-            bActionTaken = true    
-          end
-        else
-          bActionTaken = core.OrderHoldClamp(botBrain, unitSelf, false)
-        end
-      else
-        bActionTaken = core.OrderAttackClamp(botBrain, unitSelf, unitCreepTarget)
-      end
-    else
-      if unitSelf:GetAttackType() == "melee" then
-        if core.GetLastBehaviorName(botBrain) ~= behaviorLib.AttackCreepsBehavior.Name and unitCreepTarget:GetUniqueID() ~= behaviorLib.nLastMoveToCreepID then
-          behaviorLib.nLastMoveToCreepID = unitCreepTarget:GetUniqueID()
-          --If melee, move closer.
-          local vecDesiredPos = core.AdjustMovementForTowerLogic(vecTargetPos)
-          bActionTaken = core.OrderMoveToPosAndHoldClamp(botBrain, unitSelf, vecDesiredPos, false)
-        end
-      else
-        --If ranged, get within 70% of attack range if not already
-        -- This will decrease travel time for the projectile
-        if (nDistSq > nAttackRangeSq * 0.5) then 
-          local vecDesiredPos = core.AdjustMovementForTowerLogic(vecTargetPos)
-          bActionTaken = core.OrderMoveToPosClamp(botBrain, unitSelf, vecDesiredPos, false)
-        --If within a good range, just hold tight
-        else
-          bActionTaken = core.OrderHoldClamp(botBrain, unitSelf, false)
-        end
-      end
-    end
-  end
-  return bActionTaken
-end
-
-local LastHitBehaviour = {}
-LastHitBehaviour["Utility"] = LastHitUtility
-LastHitBehaviour["Execute"] = LastHitExecute
-LastHitBehaviour["Name"] = "LastHit"
-tinsert(behaviorLib.tBehaviors, LastHitBehaviour)
 
 local healTarget = nil
 local function HealUtility(botBrain)
@@ -299,13 +175,13 @@ local function HealUtility(botBrain)
   end
   local target = nil
   local health = 1
-  for _, ally in pairs(core.localUnits["EnemyHeroes"]) do
+  for _, ally in pairs(core.localUnits["AllyHeroes"]) do
     if ally:GetHealthPercent() < health then
       target = ally
       health = ally:GetHealthPercent()
     end
   end
-  if health < 0.75 then
+  if health < 0.50 then
     healTarget = target
     return 100
   end
@@ -314,7 +190,8 @@ end
 
 local function HealExecute(botBrain)
   if skills.heal:CanActivate() then
-    core.OrderAbilityEntity(botBrain, core:skills.heal, healTarget);
+    core.teamBotBrain.healPosition = healTarget:GetPosition();
+    core.OrderAbilityPosition(botBrain, skills.heal, healTarget:GetPosition());
   end
 end
 

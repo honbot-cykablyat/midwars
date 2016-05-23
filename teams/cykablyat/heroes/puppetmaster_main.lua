@@ -33,8 +33,9 @@ runfile "bots/botbraincore.lua"
 runfile "bots/eventsLib.lua"
 runfile "bots/metadata.lua"
 runfile "bots/behaviorLib.lua"
+runfile "bots/teams/cykablyat/generics.lua"
 
-local core, eventsLib, behaviorLib, metadata, skills = object.core, object.eventsLib, object.behaviorLib, object.metadata, object.skills
+local generics, core, eventsLib, behaviorLib, metadata, skills = object.generics, object.core, object.eventsLib, object.behaviorLib, object.metadata, object.skills
 
 local print, ipairs, pairs, string, table, next, type, tinsert, tremove, tsort, format, tostring, tonumber, strfind, strsub
   = _G.print, _G.ipairs, _G.pairs, _G.string, _G.table, _G.next, _G.type, _G.table.insert, _G.table.remove, _G.table.sort, _G.string.format, _G.tostring, _G.tonumber, _G.string.find, _G.string.sub
@@ -107,6 +108,8 @@ function object:onthinkOverride(tGameVariables)
 end
 object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride
+
+tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
 
 -- ComboWombo -behaviour
 

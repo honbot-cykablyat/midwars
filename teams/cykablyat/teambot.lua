@@ -53,6 +53,8 @@ object.onthink = object.onthinkOverride
 
 local attack_priority = {"Hero_Fairy", "Hero_PuppetMaster", "Hero_Valkyrie", "Hero_MonkeyKing", "Hero_Devourer"};
 
+local healPosition = nil
+
 local unitTeamTarget = nil
 
 function object:GetTeamTarget()

@@ -17,4 +17,19 @@ local generics = object.generics
 
 BotEcho("loading default generics ..")
 
--- Our own code
+function takeHealUtility(botBrain)
+  local healPos = core.teamBotBrain.healPosition
+  if healPos and core.unitSelf:GetHealthPercent() < 0.50 then
+    return 50
+  end
+  return 0
+end
+
+function takeHealExecute(botBrain)
+  core.OrderPosition(botBrain, core.unitSelf, "move", healPos, "none", nil, true)
+end
+
+TakeHealBehavior = {}
+TakeHealBehavior["Utility"] = takeHealUtility
+TakeHealBehavior["Execute"] = takeHealExecute
+TakeHealBehavior["Name"] = "HarassHero"
