@@ -14,7 +14,7 @@ object.bAttackCommands = true
 object.bAbilityCommands = true
 object.bOtherCommands = true
 
-object.bReportBehavior = true
+object.bReportBehavior = falses
 object.bDebugUtility = false
 object.bDebugExecute = false
 
@@ -263,6 +263,19 @@ function object:onthinkOverride(tGameVariables)
   self:onthinkOld(tGameVariables)
 
   -- custom code here
+  local target = nil
+  local index = 666
+  for _,enemy in pairs(core.localUnits["EnemyHeroes"]) do 
+    if enemy:IsStunned() then
+      for i,hero in pairs(attack_priority) do
+        if enemy.hero_name == hero and i < index then
+          target = enemy
+          index = i
+        end
+      end
+    end
+  end
+  core.teamBotBrain:SetTeamTarget(target)
 end
 object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride

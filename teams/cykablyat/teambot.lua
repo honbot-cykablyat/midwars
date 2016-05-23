@@ -50,3 +50,26 @@ function object:onthinkOverride(tGameVariables)
 end
 object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride
+
+local attack_priority = {"Hero_Fairy", "Hero_PuppetMaster", "Hero_Valkyrie", "Hero_MonkeyKing", "Hero_Devourer"};
+
+local unitTeamTarget = nil
+
+function object:GetTeamTarget()
+  if unitTeamTarget and unitTeamTarget:IsValid() then
+    if self:CanSeeUnit(unitTeamTarget) then
+      return self:GetMemoryUnit(unitTeamTarget)
+    else
+      unitTeamTarget = nil
+    end
+  end
+  return nil
+end
+
+function object:SetTeamTarget(target)
+  unitTeamTarget = target
+end
+
+function object:GroupAndPushLogic()
+
+end
