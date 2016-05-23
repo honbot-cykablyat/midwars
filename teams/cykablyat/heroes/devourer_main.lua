@@ -147,6 +147,77 @@ end
 object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride
 
+-- Custom harass behaviour
+
+local harassOldUtility = behaviorLib.HarassHeroBehavior["Utility"]
+local harassOldExecute = behaviorLib.HarassHeroBehavior["Execute"]
+
+local function harassUtilityOverride(botBrain)
+  BotEcho("checking harass: " .. core.teamBotBrain:GetState())
+  if core.teamBotBrain.GetState and core.teamBotBrain:GetState() == "LANE_AGGRESSIVELY" then
+    return 100
+  end
+  return harassOldUtility(botBrain)
+end
+
+local function harassExecuteOverride(botBrain)
+  local unitTarget = behaviorLib.heroTarget
+  if unitTarget == nil or not unitTarget:IsValid() then
+    return false --can not execute, move on to the next behavior
+  end
+
+  local unitSelf = core.unitSelf
+
+  if unitSelf:IsChanneling() then
+    return
+  end
+
+  local bActionTaken = false
+
+  --since we are using an old pointer, ensure we can still see the target for entity targeting
+  if core.CanSeeUnit(botBrain, unitTarget) then
+    local dist = Vector3.Distance2D(unitSelf:GetPosition(), unitTarget:GetPosition())
+    local attkRange = core.GetAbsoluteAttackRangeToUnit(unitSelf, unitTarget);
+
+    local itemGhostMarchers = core.itemGhostMarchers
+
+    local ulti = skills.ulti
+    local ultiRange = ulti and (ulti:GetRange() + core.GetExtraRange(unitSelf) + core.GetExtraRange(unitTarget)) or 0
+
+    local bUseUlti = true
+
+    if ulti and ulti:CanActivate() and bUseUlti and dist < ultiRange then
+      bActionTaken = core.OrderAbilityEntity(botBrain, ulti, unitTarget)
+    elseif (ulti and ulti:CanActivate() and bUseUlti and dist > ultiRange) then
+      --move in when we want to ult
+      local desiredPos = unitTarget:GetPosition()
+
+      if itemPK and itemPK:CanActivate() then
+        bActionTaken = core.OrderItemPosition(botBrain, unitSelf, itemPK, desiredPos)
+      end
+
+      if not bActionTaken and itemGhostMarchers and itemGhostMarchers:CanActivate() then
+        bActionTaken = core.OrderItemClamp(botBrain, unitSelf, itemGhostMarchers)
+      end
+
+      if not bActionTaken and behaviorLib.lastHarassUtil < behaviorLib.diveThreshold then
+        desiredPos = core.AdjustMovementForTowerLogic(desiredPos)
+      end
+      core.OrderMoveToPosClamp(botBrain, unitSelf, desiredPos, false)
+      bActionTaken = true
+    end
+  end
+
+  if not bActionTaken then
+    return harassOldExecute(botBrain)
+  end
+end
+
+behaviorLib.HarassHeroBehavior["Utility"] = harassUtilityOverride
+behaviorLib.HarassHeroBehavior["Execute"] = harassExecuteOverride
+
+-- End of custom harass
+
 local function GetAttackDamageMinOnCreep(unitCreepTarget)
   local unitSelf = core.unitSelf
   local nDamageMin = unitSelf:GetAttackDamageMax(); --core.GetFinalAttackDamageAverage(unitSelf)

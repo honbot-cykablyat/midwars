@@ -14,29 +14,87 @@ local core = object.core
 
 -- Custom code
 
-local availableStates = {"DEFEND_OWN_TOWER", "LANE_PASSIVELY", "LANE_AGGRESSIVELY", "AVOID_ENEMY_TOWER", "ATTACK_ENEMY_TOWER"}
-local state
-local function EvaluateTeamMapPosition()
+local function CalculateTeamSize(heroes)
+  local size = 0
+  for _, hero in pairs(heroes) do
+    if hero:GetPosition() and hero:IsAlive() then
+      size = size + 1
+    end
+  end
+  return size
+end
 
+local function CalculateTeamPositionAndSize(heroes)
   local furthestCreepPos = object:GetFrontOfCreepWavePosition("middle")
-  core.DrawXPosition(furthestCreepPos, "red", 10000)
+  -- If no creeps
+  -- if not furthestCreepPos then
+  --   return { Vector3.create(0, 0), 5 }
+  -- end
+  -- core.DrawXPosition(furthestCreepPos, "red", 10000)
   -- core.BotEcho(furthestCreepPos.x .." ".. furthestCreepPos.y)
-  local allyHeroesNearCreep = {}
-  for _, allyHero in pairs(object.tAllyHeroes) do
-    if allyHero:IsAlive() then
-      local distanceToCreep = Vector3.Distance2D(furthestCreepPos, allyHero:GetPosition())
+  local heroesNearCreep = {}
+  for _, hero in pairs(heroes) do
+    if hero:GetPosition() and hero:IsAlive() then
+      local distanceToCreep = Vector3.Distance2D(furthestCreepPos, hero:GetPosition())
       if distanceToCreep < 1000 then
-        tinsert(allyHeroesNearCreep, allyHero)
+        tinsert(heroesNearCreep, hero)
       end
     end
   end
-
-  local myTeamPos = HoN.GetGroupCenter(allyHeroesNearCreep)
-  -- local enemyTeamPos = HoN.GetGroupCenter(allyHeroesNearCreep)
-
-  core.DrawXPosition(myTeamPos)
-  core.DrawXPosition(enemyTeamPos)
+  return { HoN.GetGroupCenter(heroesNearCreep), table.getn(heroesNearCreep) }
 end
+
+local availableStates = {"DEFEND_OWN_TOWER", "LANE_PASSIVELY", "LANE_AGGRESSIVELY", "AVOID_ENEMY_TOWER", "ATTACK_ENEMY_TOWER"}
+local state = "LANE_PASSIVELY"
+local function EvaluateTeamMapPosition()
+
+  local allyTeam = CalculateTeamPositionAndSize(object.tAllyHeroes)
+  local enemyTeam = CalculateTeamPositionAndSize(object.tEnemyHeroes)
+
+  -- if one of teams position is nil
+  if not allyTeam[1] or not enemyTeam[1] then
+    state = "LANE_PASSIVELY"
+    return
+  end
+
+  core.BotEcho(allyTeam[2] .. " " .. enemyTeam[2])
+
+  local enemyBasePos = core.enemyMainBaseStructure:GetPosition()
+  local allyTower = core.GetClosestAllyTower(enemyBasePos)
+  local allyTowerPos = allyTower:GetPosition()
+  local enemyTower = core.GetClosestEnemyTower(allyTowerPos)
+  local enemyTowerPos = enemyTower:GetPosition()
+
+  local distToAllyTower = Vector3.Distance2D(allyTeam[1], allyTowerPos)
+  local distToEnemyTower = Vector3.Distance2D(allyTeam[1], enemyTowerPos)
+
+  if enemyTeam[2] < allyTeam[2] then
+    state = "LANE_AGGRESSIVELY"
+  else
+    state = "LANE_PASSIVELY"
+  end
+
+  -- if distToAllyTower < 1000 then
+  --   state = "DEFEND_ALLY_TOWER"
+  -- elseif distToAllyTower <= distToEnemyTower then
+  --   state = "LANE_PASSIVELY"
+  -- elseif distToAllyTower > distToEnemyTower then
+  --   state = "LANE_PASSIVELY"
+  -- elseif distToEnemyTower < 750 then
+  --   state = "AVOID_ENEMY_TOWER"
+  -- else
+  --   state = "LANE_PASSIVELY"
+  -- end
+
+  core.DrawXPosition(allyTeam[1], "green", 400)
+  core.DrawXPosition(enemyTeam[1], "red", 400)
+end
+
+function object:GetState()
+  core.BotEcho(state)
+  return state
+end
+
 ------------------------------------------------------
 --            onthink override                      --
 -- Called every bot tick, custom onthink code here  --
