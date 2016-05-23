@@ -14,7 +14,7 @@ object.bAttackCommands = true
 object.bAbilityCommands = true
 object.bOtherCommands = true
 
-object.bReportBehavior = false
+object.bReportBehavior = true
 object.bDebugUtility = false
 object.bDebugExecute = false
 
@@ -291,6 +291,39 @@ LastHitBehaviour["Utility"] = LastHitUtility
 LastHitBehaviour["Execute"] = LastHitExecute
 LastHitBehaviour["Name"] = "LastHit"
 tinsert(behaviorLib.tBehaviors, LastHitBehaviour)
+
+local healTarget = nil
+local function HealUtility(botBrain)
+  if not skills.heal:CanActivate() then
+    return 0
+  end
+  local target = nil
+  local health = 1
+  for _, ally in pairs(core.localUnits["EnemyHeroes"]) do
+    if ally:GetHealthPercent() < health then
+      target = ally
+      health = ally:GetHealthPercent()
+    end
+  end
+  if health < 0.75 then
+    healTarget = target
+    return 100
+  end
+  return 0
+end
+
+local function HealExecute(botBrain)
+  if skills.heal:CanActivate() then
+    core.OrderAbilityEntity(botBrain, core:skills.heal, healTarget);
+  end
+end
+
+local healBehaviour = {}
+healBehaviour["Utility"] = HealUtility
+healBehaviour["Execute"] = HealExecute
+healBehaviour["Name"] = "Heal"
+tinsert(behaviorLib.tBehaviors, healBehaviour)
+
 ----------------------------------------------
 --            oncombatevent override        --
 -- use to check for infilictors (fe. buffs) --
