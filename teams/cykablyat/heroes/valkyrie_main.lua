@@ -142,6 +142,41 @@ function behaviorLib.CustomHarassUtility(unit)
   return harass;
 end
 
+local harassOldUtility = behaviorLib.HarassHeroBehavior["Utility"]
+local harassOldExecute = behaviorLib.HarassHeroBehavior["Execute"]
+
+local function harassUtilityOverride(botBrain)
+  BotEcho("checking harass ")
+  if core.teamBotBrain.GetState and core.teamBotBrain:GetState() == "LANE_AGGRESSIVELY" then
+    return 100
+  end
+  return harassOldUtility(botBrain)
+end
+
+local function harassExecuteOverride(botBrain)
+  -- local targetHero = behaviorLib.heroTarget
+  local targetHero = core.teamBotBrain:GetTeamTarget()
+  if targetHero == nil or not targetHero:IsValid() then
+    return false --can not execute, move on to the next behavior
+  end
+
+  local unitSelf = core.unitSelf
+
+  local bActionTaken = false
+
+  local call = skills.call
+  if call and call:CanActivate() and Vector3.Distance2D(targetHero:GetPosition(), unitSelf:GetPosition()) < 650 then
+    bActionTaken = core.OrderAbility(botBrain, call)
+  end
+
+  if not bActionTaken then
+    return harassOldExecute(botBrain)
+  end
+end
+
+behaviorLib.HarassHeroBehavior["Utility"] = harassUtilityOverride
+behaviorLib.HarassHeroBehavior["Execute"] = harassExecuteOverride
+
 ------------------------------------------------------
 --            onthink override                      --
 -- Called every bot tick, custom onthink code here  --
@@ -160,10 +195,10 @@ object.onthink = object.onthinkOverride
 local function GetAttackDamageMinOnCreep(unitCreepTarget)
   local unitSelf = core.unitSelf
   local nDamageMin = unitSelf:GetAttackDamageMax(); --core.GetFinalAttackDamageAverage(unitSelf)
-        
+
   if core.itemHatchet then
     nDamageMin = nDamageMin * core.itemHatchet.creepDamageMul
-  end  
+  end
 
   return nDamageMin
 end
@@ -180,7 +215,7 @@ local function LastHitUtility(botBrain)
   for _, unit in pairs(tEnemies) do
     if not unit:IsInvulnerable() and not unit:IsHero() and unit:GetOwnerPlayerID() == nil then
       local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), unit:GetPosition())
-      local nAttackRangeSq = core.GetAbsoluteAttackRangeToUnit(unitSelf, unit, true) 
+      local nAttackRangeSq = core.GetAbsoluteAttackRangeToUnit(unitSelf, unit, true)
       local nTempHP = unit:GetHealth()
       if nDistSq < nAttackRangeSq * 3 * 3 and nTempHP < nMinionHP then
         unitWeakestMinion = unit
@@ -188,7 +223,7 @@ local function LastHitUtility(botBrain)
       end
     end
   end
-  
+
   if unitWeakestMinion ~= nil then
     core.unitMinionTarget = unitWeakestMinion
     --minion lh > creep lh
@@ -222,7 +257,7 @@ local function LastHitExecute(botBrain)
     unitCreepTarget = core.unitCreepTarget
   end
 
-  if unitCreepTarget and core.CanSeeUnit(botBrain, unitCreepTarget) then      
+  if unitCreepTarget and core.CanSeeUnit(botBrain, unitCreepTarget) then
     --Get info about the target we are about to attack
     local vecSelfPos = unitSelf:GetPosition()
     local vecTargetPos = unitCreepTarget:GetPosition()
@@ -246,7 +281,7 @@ local function LastHitExecute(botBrain)
     end
     --Only attack if, by the time our attack reaches the target
     -- the damage done by other sources brings the target's health
-    -- below our minimum damage, and we are in range and can attack right now-    
+    -- below our minimum damage, and we are in range and can attack right now-
     if nDistSq <= nAttackRangeSq and unitSelf:IsAttackReady() then
       if unitSelf:GetAttackType() == "melee" then
         local nDamageMin = GetAttackDamageMinOnCreep(unitCreepTarget)
@@ -255,7 +290,7 @@ local function LastHitExecute(botBrain)
           if core.GetAttackSequenceProgress(unitSelf) ~= "windup" then
             bActionTaken = core.OrderAttack(botBrain, unitSelf, unitCreepTarget)
           else
-            bActionTaken = true    
+            bActionTaken = true
           end
         else
           bActionTaken = core.OrderHoldClamp(botBrain, unitSelf, false)
@@ -274,7 +309,7 @@ local function LastHitExecute(botBrain)
       else
         --If ranged, get within 70% of attack range if not already
         -- This will decrease travel time for the projectile
-        if (nDistSq > nAttackRangeSq * 0.5) then 
+        if (nDistSq > nAttackRangeSq * 0.5) then
           local vecDesiredPos = core.AdjustMovementForTowerLogic(vecTargetPos)
           bActionTaken = core.OrderMoveToPosClamp(botBrain, unitSelf, vecDesiredPos, false)
         --If within a good range, just hold tight

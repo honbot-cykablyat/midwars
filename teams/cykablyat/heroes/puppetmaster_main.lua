@@ -125,8 +125,9 @@ local function harassUtilityOverride(botBrain)
 end
 
 local function harassExecuteOverride(botBrain)
-  local targetHero = behaviorLib.heroTarget
-  if unitTarget == nil or not unitTarget:IsValid() then
+  -- local targetHero = behaviorLib.heroTarget
+  local targetHero = core.teamBotBrain:GetTeamTarget()
+  if targetHero == nil or not targetHero:IsValid() then
     return false --can not execute, move on to the next behavior
   end
 

@@ -14,16 +14,6 @@ local core = object.core
 
 -- Custom code
 
-local function CalculateTeamSize(heroes)
-  local size = 0
-  for _, hero in pairs(heroes) do
-    if hero:GetPosition() and hero:IsAlive() then
-      size = size + 1
-    end
-  end
-  return size
-end
-
 local function CalculateTeamPositionAndSize(heroes)
   local furthestCreepPos = object:GetFrontOfCreepWavePosition("middle")
   -- If no creeps
@@ -46,10 +36,12 @@ end
 
 local availableStates = {"DEFEND_OWN_TOWER", "LANE_PASSIVELY", "LANE_AGGRESSIVELY", "AVOID_ENEMY_TOWER", "ATTACK_ENEMY_TOWER"}
 local state = "LANE_PASSIVELY"
+local allyTeam = nil
+local enemyTeam = nil
 local function EvaluateTeamMapPosition()
 
-  local allyTeam = CalculateTeamPositionAndSize(object.tAllyHeroes)
-  local enemyTeam = CalculateTeamPositionAndSize(object.tEnemyHeroes)
+  allyTeam = CalculateTeamPositionAndSize(object.tAllyHeroes)
+  enemyTeam = CalculateTeamPositionAndSize(object.tEnemyHeroes)
 
   -- if one of teams position is nil
   if not allyTeam[1] or not enemyTeam[1] then
@@ -95,6 +87,47 @@ function object:GetState()
   return state
 end
 
+
+local attack_priority = {"Hero_Fairy", "Hero_PuppetMaster", "Hero_Valkyrie", "Hero_MonkeyKing", "Hero_Devourer"};
+
+local healPosition = nil
+
+local teamTarget = nil
+
+function object:GetTeamTarget()
+  return teamTarget
+end
+
+function object:SetTeamTarget(target)
+  teamTarget = target
+end
+
+function object:GroupAndPushLogic()
+
+end
+
+-- Checks for nearest and lowest hp enemy hero
+local function FindBestEnemyTarget(position)
+  local bestTarget = nil
+  for _, enemyHero in pairs(object.tEnemyHeroes) do
+    if enemyHero:GetPosition() and enemyHero:IsAlive() then
+      local distanceToPos = Vector3.Distance2D(position, enemyHero:GetPosition())
+      local enemyHealth = enemyHero:GetHealth()
+      if not bestTarget then
+        bestTarget = enemyHero
+      end
+
+      local bestTargetDist = Vector3.Distance2D(position, bestTarget:GetPosition())
+      -- Checks if best target has more health than currently looped hero
+      -- Or if best target has less than 300 more HP and current hero is 200 closer
+      if bestTarget:GetHealth() > enemyHealth or (enemyHealth - bestTarget:GetHealth() < 300 and bestTargetDist - 200 > distanceToPos) then
+        bestTarget = enemyHero
+      end
+    end
+  end
+  return bestTarget
+end
+
 ------------------------------------------------------
 --            onthink override                      --
 -- Called every bot tick, custom onthink code here  --
@@ -105,31 +138,9 @@ function object:onthinkOverride(tGameVariables)
   self:onthinkOld(tGameVariables)
   -- custom code here
   EvaluateTeamMapPosition()
+  if allyTeam[1] then
+    teamTarget = FindBestEnemyTarget(allyTeam[1])
+  end
 end
 object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride
-
-local attack_priority = {"Hero_Fairy", "Hero_PuppetMaster", "Hero_Valkyrie", "Hero_MonkeyKing", "Hero_Devourer"};
-
-local healPosition = nil
-
-local unitTeamTarget = nil
-
-function object:GetTeamTarget()
-  if unitTeamTarget and unitTeamTarget:IsValid() then
-    if self:CanSeeUnit(unitTeamTarget) then
-      return self:GetMemoryUnit(unitTeamTarget)
-    else
-      unitTeamTarget = nil
-    end
-  end
-  return nil
-end
-
-function object:SetTeamTarget(target)
-  unitTeamTarget = target
-end
-
-function object:GroupAndPushLogic()
-
-end
