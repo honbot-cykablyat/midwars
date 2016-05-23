@@ -364,6 +364,7 @@ function KillUtility(botBrain)
     if not location == nil then
       if generics.IsFreeLine(unitSelf.GetPosition, location) then
         behaviorLib.herotarget = unit;
+        core.teamBotBrain:SetTeamTarget(unit)
         return 999;
       end
     end

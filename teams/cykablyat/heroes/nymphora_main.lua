@@ -109,6 +109,7 @@ function sign(x)
 end
 
 function behaviorLib.CustomHarassUtility(unit)
+  return 0
   local unitSelf = core.unitSelf;
   local level = unitSelf:GetLevel() - unit:GetLevel();
   level = sign(level) * level * level;
