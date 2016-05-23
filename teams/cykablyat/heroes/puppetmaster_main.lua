@@ -209,12 +209,12 @@ local function ComboExecute(botBrain)
   else
     -- cast a spell
     local skill = unitSelf:GetAbility(combo[comboIndex]);
-	if skill and skill:CanActivate() and (HoN:GetMatchTime() - lastCast) > wait then
+  if skill and skill:CanActivate() and (HoN:GetMatchTime() - lastCast) > wait then
       wait = skill:GetAdjustedCastTime();
       lastCast = HoN:GetMatchTime();
       core.OrderAbilityEntity(botBrain, skill, target);
       comboIndex = comboIndex + 1;
-	end
+  end
   end
   return false;
 end

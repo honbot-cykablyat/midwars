@@ -146,133 +146,133 @@ object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride
 
 local function GetAttackDamageMinOnCreep(unitCreepTarget)
-	local unitSelf = core.unitSelf
-	local nDamageMin = unitSelf:GetAttackDamageMax(); --core.GetFinalAttackDamageAverage(unitSelf)
+  local unitSelf = core.unitSelf
+  local nDamageMin = unitSelf:GetAttackDamageMax(); --core.GetFinalAttackDamageAverage(unitSelf)
 
-	if core.itemHatchet then
-		nDamageMin = nDamageMin * core.itemHatchet.creepDamageMul
-	end
+  if core.itemHatchet then
+    nDamageMin = nDamageMin * core.itemHatchet.creepDamageMul
+  end
 
-	return nDamageMin
+  return nDamageMin
 end
 
 local function LastHitUtility(botBrain)
-	local unitSelf = core.unitSelf
+  local unitSelf = core.unitSelf
   if not unitSelf:IsAttackReady() then
     return 0;
   end
-	local tEnemies = core.localUnits["Enemies"]
-	local unitWeakestMinion = nil
-	local nMinionHP = 99999999
-	local nUtility = 0
-	for _, unit in pairs(tEnemies) do
-		if not unit:IsInvulnerable() and not unit:IsHero() and unit:GetOwnerPlayerID() == nil then
+  local tEnemies = core.localUnits["Enemies"]
+  local unitWeakestMinion = nil
+  local nMinionHP = 99999999
+  local nUtility = 0
+  for _, unit in pairs(tEnemies) do
+    if not unit:IsInvulnerable() and not unit:IsHero() and unit:GetOwnerPlayerID() == nil then
       local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), unit:GetPosition())
       local nAttackRangeSq = core.GetAbsoluteAttackRangeToUnit(unitSelf, unit, true)
       local nTempHP = unit:GetHealth()
-			if nDistSq < nAttackRangeSq * 3 * 3 and nTempHP < nMinionHP then
-				unitWeakestMinion = unit
-				nMinionHP = nTempHP
-			end
-		end
-	end
+      if nDistSq < nAttackRangeSq * 3 * 3 and nTempHP < nMinionHP then
+        unitWeakestMinion = unit
+        nMinionHP = nTempHP
+      end
+    end
+  end
 
-	if unitWeakestMinion ~= nil then
-		core.unitMinionTarget = unitWeakestMinion
-		--minion lh > creep lh
-		local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), unitWeakestMinion:GetPosition())
-		local nAttackRangeSq = core.GetAbsoluteAttackRangeToUnit(unitSelf, unitWeakestMinion, true) * 3 * 3
-		if nDistSq < nAttackRangeSq then
-			if nMinionHP <= GetAttackDamageMinOnCreep(unitWeakestMinion) then --core.GetFinalAttackDamageAverage(unitSelf) * (1 - unitWeakestMinion:GetPhysicalResistance()) then
-				-- LastHit Minion
-				nUtility = 100 --25
-			else
-				-- Harass Minion
-				-- PositionSelf 20 and AttackCreeps 21
-				-- positonSelf < minionHarass < creep lh || deny
-				--nUtility = 80 --20.5
-			end
-		end
-	end
-	return nUtility
+  if unitWeakestMinion ~= nil then
+    core.unitMinionTarget = unitWeakestMinion
+    --minion lh > creep lh
+    local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), unitWeakestMinion:GetPosition())
+    local nAttackRangeSq = core.GetAbsoluteAttackRangeToUnit(unitSelf, unitWeakestMinion, true) * 3 * 3
+    if nDistSq < nAttackRangeSq then
+      if nMinionHP <= GetAttackDamageMinOnCreep(unitWeakestMinion) then --core.GetFinalAttackDamageAverage(unitSelf) * (1 - unitWeakestMinion:GetPhysicalResistance()) then
+        -- LastHit Minion
+        nUtility = 100 --25
+      else
+        -- Harass Minion
+        -- PositionSelf 20 and AttackCreeps 21
+        -- positonSelf < minionHarass < creep lh || deny
+        --nUtility = 80 --20.5
+      end
+    end
+  end
+  return nUtility
 end
 
 local nLastMoveToCreepID = nil
 local function LastHitExecute(botBrain)
-	local bActionTaken = false
-	local unitSelf = core.unitSelf
-	local sCurrentBehavior = core.GetCurrentBehaviorName(botBrain)
+  local bActionTaken = false
+  local unitSelf = core.unitSelf
+  local sCurrentBehavior = core.GetCurrentBehaviorName(botBrain)
 
-	local unitCreepTarget = nil
-	if sCurrentBehavior == "AttackEnemyMinions" then
-		unitCreepTarget = core.unitMinionTarget
-	else
-		unitCreepTarget = core.unitCreepTarget
-	end
+  local unitCreepTarget = nil
+  if sCurrentBehavior == "AttackEnemyMinions" then
+    unitCreepTarget = core.unitMinionTarget
+  else
+    unitCreepTarget = core.unitCreepTarget
+  end
 
-	if unitCreepTarget and core.CanSeeUnit(botBrain, unitCreepTarget) then
-		--Get info about the target we are about to attack
-		local vecSelfPos = unitSelf:GetPosition()
-		local vecTargetPos = unitCreepTarget:GetPosition()
-		local nDistSq = Vector3.Distance2DSq(vecSelfPos, vecTargetPos)
-		local nAttackRangeSq = core.GetAbsoluteAttackRangeToUnit(unitSelf, unitCreepTarget, true)
+  if unitCreepTarget and core.CanSeeUnit(botBrain, unitCreepTarget) then
+    --Get info about the target we are about to attack
+    local vecSelfPos = unitSelf:GetPosition()
+    local vecTargetPos = unitCreepTarget:GetPosition()
+    local nDistSq = Vector3.Distance2DSq(vecSelfPos, vecTargetPos)
+    local nAttackRangeSq = core.GetAbsoluteAttackRangeToUnit(unitSelf, unitCreepTarget, true)
 
-		-- Use Loggers Hatchet
-		local itemHatchet = core.itemHatchet
-		--nested if for clarity and to reduce optimization which is negligible.
-		if itemHatchet and itemHatchet:CanActivate() then --valid hatchet
-			if unitCreepTarget:GetTeam() ~= unitSelf:GetTeam() and core.IsLaneCreep(unitCreepTarget) then --valid creep
-				if core.GetAttackSequenceProgress(unitSelf) ~= "windup" and nDistSq < (600 * 600) then --valid positioning
-					if GetAttackDamageMinOnCreep(unitCreepTarget) > core.unitCreepTarget:GetHealth() then --valid HP
-						bActionTaken = botBrain:OrderItemEntity(itemHatchet.object or itemHatchet, unitCreepTarget.object or unitCreepTarget, false)
-					end
-				end
-			end
-		end
-		if bActionTaken then
+    -- Use Loggers Hatchet
+    local itemHatchet = core.itemHatchet
+    --nested if for clarity and to reduce optimization which is negligible.
+    if itemHatchet and itemHatchet:CanActivate() then --valid hatchet
+      if unitCreepTarget:GetTeam() ~= unitSelf:GetTeam() and core.IsLaneCreep(unitCreepTarget) then --valid creep
+        if core.GetAttackSequenceProgress(unitSelf) ~= "windup" and nDistSq < (600 * 600) then --valid positioning
+          if GetAttackDamageMinOnCreep(unitCreepTarget) > core.unitCreepTarget:GetHealth() then --valid HP
+            bActionTaken = botBrain:OrderItemEntity(itemHatchet.object or itemHatchet, unitCreepTarget.object or unitCreepTarget, false)
+          end
+        end
+      end
+    end
+    if bActionTaken then
       return true;
-		end
-		--Only attack if, by the time our attack reaches the target
-		-- the damage done by other sources brings the target's health
-		-- below our minimum damage, and we are in range and can attack right now-
-		if nDistSq <= nAttackRangeSq and unitSelf:IsAttackReady() then
-			if unitSelf:GetAttackType() == "melee" then
-				local nDamageMin = GetAttackDamageMinOnCreep(unitCreepTarget)
+    end
+    --Only attack if, by the time our attack reaches the target
+    -- the damage done by other sources brings the target's health
+    -- below our minimum damage, and we are in range and can attack right now-
+    if nDistSq <= nAttackRangeSq and unitSelf:IsAttackReady() then
+      if unitSelf:GetAttackType() == "melee" then
+        local nDamageMin = GetAttackDamageMinOnCreep(unitCreepTarget)
 
-				if unitCreepTarget:GetHealth() <= nDamageMin then
-					if core.GetAttackSequenceProgress(unitSelf) ~= "windup" then
-						bActionTaken = core.OrderAttack(botBrain, unitSelf, unitCreepTarget)
-					else
-						bActionTaken = true
-					end
-				else
-					bActionTaken = core.OrderHoldClamp(botBrain, unitSelf, false)
-				end
-			else
-				bActionTaken = core.OrderAttackClamp(botBrain, unitSelf, unitCreepTarget)
-			end
-		else
-			if unitSelf:GetAttackType() == "melee" then
-				if core.GetLastBehaviorName(botBrain) ~= behaviorLib.AttackCreepsBehavior.Name and unitCreepTarget:GetUniqueID() ~= behaviorLib.nLastMoveToCreepID then
-					behaviorLib.nLastMoveToCreepID = unitCreepTarget:GetUniqueID()
-					--If melee, move closer.
-					local vecDesiredPos = core.AdjustMovementForTowerLogic(vecTargetPos)
-					bActionTaken = core.OrderMoveToPosAndHoldClamp(botBrain, unitSelf, vecDesiredPos, false)
-				end
-			else
-				--If ranged, get within 70% of attack range if not already
-				-- This will decrease travel time for the projectile
-				if (nDistSq > nAttackRangeSq * 0.5) then
-					local vecDesiredPos = core.AdjustMovementForTowerLogic(vecTargetPos)
-					bActionTaken = core.OrderMoveToPosClamp(botBrain, unitSelf, vecDesiredPos, false)
-				--If within a good range, just hold tight
-				else
-					bActionTaken = core.OrderHoldClamp(botBrain, unitSelf, false)
-				end
-			end
-		end
-	end
-	return bActionTaken
+        if unitCreepTarget:GetHealth() <= nDamageMin then
+          if core.GetAttackSequenceProgress(unitSelf) ~= "windup" then
+            bActionTaken = core.OrderAttack(botBrain, unitSelf, unitCreepTarget)
+          else
+            bActionTaken = true
+          end
+        else
+          bActionTaken = core.OrderHoldClamp(botBrain, unitSelf, false)
+        end
+      else
+        bActionTaken = core.OrderAttackClamp(botBrain, unitSelf, unitCreepTarget)
+      end
+    else
+      if unitSelf:GetAttackType() == "melee" then
+        if core.GetLastBehaviorName(botBrain) ~= behaviorLib.AttackCreepsBehavior.Name and unitCreepTarget:GetUniqueID() ~= behaviorLib.nLastMoveToCreepID then
+          behaviorLib.nLastMoveToCreepID = unitCreepTarget:GetUniqueID()
+          --If melee, move closer.
+          local vecDesiredPos = core.AdjustMovementForTowerLogic(vecTargetPos)
+          bActionTaken = core.OrderMoveToPosAndHoldClamp(botBrain, unitSelf, vecDesiredPos, false)
+        end
+      else
+        --If ranged, get within 70% of attack range if not already
+        -- This will decrease travel time for the projectile
+        if (nDistSq > nAttackRangeSq * 0.5) then
+          local vecDesiredPos = core.AdjustMovementForTowerLogic(vecTargetPos)
+          bActionTaken = core.OrderMoveToPosClamp(botBrain, unitSelf, vecDesiredPos, false)
+        --If within a good range, just hold tight
+        else
+          bActionTaken = core.OrderHoldClamp(botBrain, unitSelf, false)
+        end
+      end
+    end
+  end
+  return bActionTaken
 end
 
 local LastHitBehaviour = {}
