@@ -65,9 +65,9 @@ function object:SkillBuild()
     skills.show = unitSelf:GetAbility(1)
     skills.whip = unitSelf:GetAbility(2)
     skills.ulti = unitSelf:GetAbility(3)
-    skills.attributeBoost = unitSelf:GetAbility(4)
+    skills.stats = unitSelf:GetAbility(4)
 
-    if skills.hold and skills.show and skills.whip and skills.ulti and skills.attributeBoost then
+    if skills.hold and skills.show and skills.whip and skills.ulti and skills.stats then
       bSkillsValid = true
     else
       return
@@ -78,16 +78,17 @@ function object:SkillBuild()
     return
   end
 
-  if skills.ulti:CanLevelUp() then
-    skills.ulti:LevelUp()
-  elseif skills.hold:CanLevelUp() then
-    skills.hold:LevelUp()
-  elseif skills.show:CanLevelUp() then
-    skills.show:LevelUp()
-  elseif skills.whip:CanLevelUp() then
-    skills.whip:LevelUp()
+  local skillarray = {skills.whip, skills.hold, skills.show, skills.whip, skills.hold, skills.ulti, skills.whip, skills.show, skills.whip, skills.hold, skills.ulti, skills.hold, skills.show, skills.show, skills.stats, skills.ulti, skills.stats}
+
+  if unitSelf:GetLevel() < 17 then
+    local lvSkill = skillarray[unitSelf:GetLevel()]
+    if lvSkill:CanLevelUp() then
+      lvSkill:LevelUp()
+    end
   else
-    skills.attributeBoost:LevelUp()
+    if skills.stats:CanLevelUp() then
+      skills.stats:LevelUp()
+    end
   end
 end
 
@@ -99,8 +100,10 @@ end
 -- @return: none
 function object:onthinkOverride(tGameVariables)
   self:onthinkOld(tGameVariables)
-
   -- custom code here
+  -- BotEcho("lasdfasdf")
+  -- BotEcho(core.tMyLane)
+  -- core.printTable(core.tMyLane)
 end
 object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride
@@ -129,7 +132,7 @@ local function ableToCombo()
   return manaCost <= core.unitSelf:GetMana();
 end
 
--- Helper function for calculating the possible damage 
+-- Helper function for calculating the possible damage
 local function calculateDamage(self, enemyHero)
   local avg_dmg = core.GetFinalAttackDamageAverage(self);
   local avg_hits_hold = math.floor(hold_time[skills.hold:GetLevel()] / atks_per_sec);
@@ -146,7 +149,7 @@ local function ComboUtility(botBrain)
   local unitSelf = core.unitSelf
   local unitPos = unitSelf:GetPosition();
   -- core.DrawDebugLine(unitPos, Vector3.Create(unitPos.x,  unitPos.y+400))
-  core.DrawXPosition(unitPos, "red", 1200)
+  -- core.DrawXPosition(unitPos, "red", 1200)
   if comboIndex > 1 then
     return 999;
   end
@@ -160,7 +163,7 @@ local function ComboUtility(botBrain)
       behaviorLib.herotarget = unit;
       target = unit
       return 999;
-    -- end 
+    -- end
   end
   return 0;
 end
@@ -172,7 +175,7 @@ local wait = 0;
 local attacksLeft = 0;
 local function ComboExecute(botBrain)
   -- Check if execution of combo has been completed
-  if comboIndex > 5 then 
+  if comboIndex > 5 then
     comboIndex = 1;
     wait = 0;
     lastCast = 0;

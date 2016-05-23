@@ -4,5 +4,6 @@ Alias "team_cykablyat_legion" "set teambotmanager_legion cykablyat; AddBot 1 Cyk
 Alias "team_cykablyat_hellbourne" "set teambotmanager_hellbourne cykablyat; AddBot 2 CykaBlyat_Devourer; AddBot 2 CykaBlyat_MonkeyKing; AddBot 2 CykaBlyat_Nymphora; AddBot 2 CykaBlyat_PuppetMaster; AddBot 2 CykaBlyat_Valkyrie"
 Alias "setup:debug" "cg_drawDebugLines true; sv_drawDebugLines true;"
 Alias "1v1:pup" "1v1; AddBot 1 CykaBlyat_PuppetMaster; AddBot 2 CykaBlyat_PuppetMaster; UICall * Team(0, 0);"
+Alias "5v5:set" "5v5; set teambotmanager_legion default; AddBot 1 Default_Devourer; AddBot 1 Default_MonkeyKing; AddBot 1 Default_Nymphora; AddBot 1 Default_PuppetMaster; AddBot 1 Default_Valkyrie; set teambotmanager_hellbourne cykablyat; AddBot 2 CykaBlyat_Devourer; AddBot 2 CykaBlyat_MonkeyKing; AddBot 2 CykaBlyat_Nymphora; AddBot 2 CykaBlyat_PuppetMaster; AddBot 2 CykaBlyat_Valkyrie;"
 Alias "team_default_legion" "set teambotmanager_legion default; AddBot 1 Default_Devourer; AddBot 1 Default_MonkeyKing; AddBot 1 Default_Nymphora; AddBot 1 Default_PuppetMaster; AddBot 1 Default_Valkyrie"
 Alias "team_default_hellbourne" "set teambotmanager_hellbourne default; AddBot 2 Default_Devourer; AddBot 2 Default_MonkeyKing; AddBot 2 Default_Nymphora; AddBot 2 Default_PuppetMaster; AddBot 2 Default_Valkyrie"
