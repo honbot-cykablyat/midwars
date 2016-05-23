@@ -364,7 +364,6 @@ function KillUtility(botBrain)
     if not location == nil then
       if generics.IsFreeLine(unitSelf.GetPosition, location) then
         behaviorLib.herotarget = unit;
-        BotEcho("LET'S DO THIS!");
         return 999;
       end
     end

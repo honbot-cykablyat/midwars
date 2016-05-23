@@ -122,7 +122,6 @@ local function ableToCombo()
   for _, v in pairs(castableSpells) do
     local skill = unitSelf:GetAbility(v)
     if not skill:CanActivate() then
-      BotEcho(skill:GetName())
       return false;
     end
     manaCost = manaCost + skill:GetManaCost();
@@ -152,21 +151,14 @@ local function ComboUtility(botBrain)
     return 999;
   end
   if not ableToCombo() then
-    BotEcho("no combo")
     return 0;
   end
   -- Loop through enemy heros in 400 radius
-  BotEcho("COMBO TIME")
   for _, unit in pairs(core.AssessLocalUnits(botBrain, unitSelf:GetPosition(), 600).EnemyHeroes) do
---    BotEcho("yo looping")
     local dmg = calculateDamage(unitSelf, unit);
-    -- BotEcho("Calculated damage: " + dmg);
-    BotEcho(dmg)
-    BotEcho(unit:GetHealth())
     --if dmg >= unit:GetHealth() or true then
       behaviorLib.herotarget = unit;
       target = unit
-      BotEcho("LET'S DO THIS!");
       return 999;
     -- end 
   end
@@ -179,10 +171,8 @@ local lastAttacked = 0;
 local wait = 0;
 local attacksLeft = 0;
 local function ComboExecute(botBrain)
-  BotEcho(comboIndex)
   -- Check if execution of combo has been completed
   if comboIndex > 5 then 
-    BotEcho("ending combo")
     comboIndex = 1;
     wait = 0;
     lastCast = 0;
@@ -191,9 +181,7 @@ local function ComboExecute(botBrain)
   end
   local unitSelf = core.unitSelf
 
-  --BotEcho(skill)
   if attacksLeft > 0 then
-    BotEcho("still attacks left!")
     if (HoN:GetMatchTime() - lastAttacked > 600) then
       -- unneeded?
       behaviorLib.herotarget = target;
@@ -202,7 +190,6 @@ local function ComboExecute(botBrain)
       lastAttacked = HoN:GetMatchTime();
       -- If no attacks left move on to next combo state
       if attacksLeft == 0 then
-        BotEcho("no attacks left")
         comboIndex = comboIndex + 1;
       end
     end
@@ -210,7 +197,6 @@ local function ComboExecute(botBrain)
    lastCast = 0;
    wait = 0;
     -- attack
-   BotEcho("attack!")
     if comboIndex == 3 then
       attacksLeft = math.floor(hold_time[skills.hold:GetLevel()] / atks_per_sec) - 1;
     else
@@ -222,12 +208,9 @@ local function ComboExecute(botBrain)
     lastAttacked = HoN:GetMatchTime();
   else
     -- cast a spell
-    BotEcho("cast a spell!")
     local skill = unitSelf:GetAbility(combo[comboIndex]);
 	if skill and skill:CanActivate() and (HoN:GetMatchTime() - lastCast) > wait then
-      BotEcho(skill:GetTypeName());
       wait = skill:GetAdjustedCastTime();
-      BotEcho(wait)
       lastCast = HoN:GetMatchTime();
       core.OrderAbilityEntity(botBrain, skill, target);
       comboIndex = comboIndex + 1;

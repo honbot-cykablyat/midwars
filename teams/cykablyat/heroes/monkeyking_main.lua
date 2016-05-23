@@ -330,7 +330,6 @@ local function KillExecute(botBrain)
 
   local skill = unitSelf:GetAbility(combo[comboState])
   if skill and skill:CanActivate() then
-    BotEcho(skill:GetTypeName());
     orderAbility(botBrain, combo[comboState]);
     comboState = comboState + 1;
   end
