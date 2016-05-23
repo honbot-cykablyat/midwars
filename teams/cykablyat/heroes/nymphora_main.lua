@@ -70,13 +70,13 @@ tinsert(behaviorLib.tBehaviors, behaviorLib.StashBehavior)
 tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
 tinsert(behaviorLib.tBehaviors, generics.TargetBehavior)
 
-behaviorLib.StartingItems = 
+behaviorLib.StartingItems =
   {"Item_CrushingClaws", "Item_GuardianRing", "Item_ManaBattery", "Item_MinorTotem"}
-behaviorLib.LaneItems = 
+behaviorLib.LaneItems =
   {"Item_EnhancedMarchers", "Item_ManaRegen3", "Item_Marchers", "Item_MysticVestments"}
-behaviorLib.MidItems = 
+behaviorLib.MidItems =
   {"Item_PortalKey", "Item_Silence", "Item_ManaBurn1", "Item_Morph"}
-behaviorLib.LateItems = 
+behaviorLib.LateItems =
   {"Item_Astrolabe", "Item_BarrierIdol", "Item_FrostfieldPlate"}
 
 local bSkillsValid = false
@@ -128,6 +128,49 @@ function object:onthinkOverride(tGameVariables)
 end
 object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride
+
+local harassOldUtility = behaviorLib.HarassHeroBehavior["Utility"]
+local harassOldExecute = behaviorLib.HarassHeroBehavior["Execute"]
+
+local function harassUtilityOverride(botBrain)
+  BotEcho("checking harass ")
+  if core.teamBotBrain.GetState and core.teamBotBrain:GetState() == "LANE_AGGRESSIVELY" then
+    return 100
+  end
+  return harassOldUtility(botBrain)
+end
+
+local function harassExecuteOverride(botBrain)
+  -- local targetHero = behaviorLib.heroTarget
+  local targetHero = core.teamBotBrain:GetTeamTarget()
+  if targetHero == nil or not targetHero:IsValid() then
+    return false --can not execute, move on to the next behavior
+  end
+
+  local unitSelf = core.unitSelf
+  local nTargetDistanceSq = Vector3.Distance2DSq(unitSelf:GetPosition(), targetHero:GetPosition())
+
+  local bActionTaken = false
+
+  if core.CanSeeUnit(botBrain, targetHero) then
+    local stun = skills.stun
+    if stun:CanActivate() and core.unitSelf:GetMana() > 50 then
+      local nRange = stun:GetRange()
+      if nTargetDistanceSq < (nRange * nRange) then
+        bActionTaken = core.OrderAbilityPosition(botBrain, stun, targetHero:GetPosition())
+      else
+        bActionTaken = core.OrderMoveToUnitClamp(botBrain, unitSelf, targetHero)
+      end
+    end
+  end
+
+  if not bActionTaken then
+    return harassOldExecute(botBrain)
+  end
+end
+
+behaviorLib.HarassHeroBehavior["Utility"] = harassUtilityOverride
+behaviorLib.HarassHeroBehavior["Execute"] = harassExecuteOverride
 
 local stunTarget = nil
 local function StunUtility(botBrain)

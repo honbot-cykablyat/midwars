@@ -112,7 +112,65 @@ object.onthink = object.onthinkOverride
 tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
 tinsert(behaviorLib.tBehaviors, generics.TargetBehavior)
 
--- ComboWombo -behaviour
+-- Custom harass behaviour
+
+local harassOldUtility = behaviorLib.HarassHeroBehavior["Utility"]
+local harassOldExecute = behaviorLib.HarassHeroBehavior["Execute"]
+
+local function harassUtilityOverride(botBrain)
+  BotEcho("checking harass")
+  if core.teamBotBrain.GetState and core.teamBotBrain:GetState() == "LANE_AGGRESSIVELY" then
+    return 100
+  end
+  return harassOldUtility(botBrain)
+end
+
+local function harassExecuteOverride(botBrain)
+  -- local targetHero = behaviorLib.heroTarget
+  local targetHero = core.teamBotBrain:GetTeamTarget()
+  if targetHero == nil or not targetHero:IsValid() then
+    return false --can not execute, move on to the next behavior
+  end
+
+  local unitSelf = core.unitSelf
+  local bActionTaken = false
+
+  if core.CanSeeUnit(botBrain, targetHero) then
+
+    local nTargetDistanceSq = Vector3.Distance2DSq(unitSelf:GetPosition(), heroTarget:GetPosition())
+
+    local ulti = skills.ulti
+    local nRange = ulti:GetRange()
+    if not heroTarget:IsMagicImmune() and ulti:CanActivate() and nTargetDistanceSq < (nRange * nRange) then
+      bActionTaken = core.OrderAbilityEntity(botBrain, ulti, heroTarget)
+    end
+
+    local hold = skills.hold
+    nRange = hold:GetRange()
+    if not bActionTaken and not heroTarget:IsStunned() and not heroTarget:IsMagicImmune() and hold:CanActivate() and not heroTarget:HasState("State_PuppetMaster_Ability2") and nTargetDistanceSq < (nRange * nRange) then
+      bActionTaken = core.OrderAbilityEntity(botBrain, hold, heroTarget)
+    end
+
+    local show = skills.show
+    nRange = show:GetRange()
+    local unitsNearby = core.AssessLocalUnits(botBrain, heroTarget, 400)
+
+    local nEnemies = core.NumberElements(unitsNearby.Enemies)
+
+    if not bActionTaken and not heroTarget:IsStunned() and not heroTarget:IsMagicImmune() and not heroTarget:HasState("State_PuppetMaster_Ability1") and show:CanActivate() and nTargetDistanceSq < (nRange * nRange) and nEnemies > 0 then
+      bActionTaken = core.OrderAbilityEntity(botBrain, show, heroTarget)
+    end
+  end
+
+  if not bActionTaken then
+    return harassOldExecute(botBrain)
+  end
+end
+
+behaviorLib.HarassHeroBehavior["Utility"] = harassUtilityOverride
+behaviorLib.HarassHeroBehavior["Execute"] = harassExecuteOverride
+
+-- ComboWombo behaviour
 
 local atks_per_sec = 0.71; -- default value
 local hold_time = {2.5, 3.25, 4, 4.75};
