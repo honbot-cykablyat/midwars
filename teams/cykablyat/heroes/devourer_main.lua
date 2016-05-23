@@ -71,6 +71,7 @@ tinsert(behaviorLib.tBehaviors, behaviorLib.ShopBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.StashBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.HarassHeroBehavior)
 tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
+tinsert(behaviorLib.tBehaviors, generics.TargetBehavior)
 
 local bSkillsValid = false
 function object:SkillBuild()
@@ -94,7 +95,7 @@ function object:SkillBuild()
     return
   end
 
-  local skillarray = {skills.fart, skills.hook, skills.hook, skills.skin, skills.hook, skills.ulti, skills.hook, skills.fart, skills.fart, skills.fart, skills.ulti, skills.skin, skills.skin, skills.skin, skills.stats, skills.ulti, skills.stats}
+  local skillarray = {skills.hook, skills.fart, skills.hook, skills.skin, skills.hook, skills.ulti, skills.hook, skills.fart, skills.fart, skills.fart, skills.ulti, skills.skin, skills.skin, skills.skin, skills.stats, skills.ulti, skills.stats}
 
   if unitSelf:GetLevel() < 17 then
     local lvSkill = skillarray[unitSelf:GetLevel()]
@@ -313,32 +314,28 @@ behaviorLib.CustomHarassUtility = CustomHarassUtilityOverride
 local function predict_location(enemy)
   local unitSelf = core.unitSelf
   local enemyHeading = enemy:GetHeading()
-  local selfPos = unitSelf.GetPosition()
-  local enemyPos = unitSelf.GetPosition()
+  local selfPos = unitSelf:GetPosition()
+  local enemyPos = enemy:GetPosition()
   local hookSpeed = 1600
   local enemySpeed = enemy:GetMoveSpeed()
-  local t_max = 1100/hookSpeed
+  local enemyMovement = enemySpeed * enemyHeading;
+  local t_max = 1100 / hookSpeed
 
+  local startPos = enemyPos;
+  local t = Vector3.Distance2D(selfPos, startPos) / hookSpeed;
   while true do
-    local distance = Vector3.Distance2D(selfPos, enemyPos)
-
-    local t = distance / hookSpeed
-
-    local enemyNewPos = ((t*enemySpeed)*enemyHeading) + enemyPos
-
-    distance = Vector3.Distance2D(selfPos, enemyNewPos)
-
-    local t_new = distance / hookSpeed
-    if t_new == t then
-      return enemyNewPos
-    elseif t_new < t_max then
+    local newPos = startPos + t * enemyMovement;
+    local newT = Vector3.Distance2D(selfPos, newPos) / hookSpeed;
+    if math.abs(newT - t) < 0.001 then
+      return newPos
+    elseif newT > t_max then
       return nil
     end
-    enemyPos = enemyNewPos
+    t = newT
   end
 end
 
-local combo = {skills.hook, skills.ulti};
+local combo = {0, 3};
 
 local function comboViable()
   local unitSelf = core.unitSelf
@@ -353,21 +350,25 @@ local function comboViable()
 end
 
 local comboState = 1;
-function KillUtility(botBrain)
+local function KillUtility(botBrain)
   local unitSelf = core.unitSelf;
   if comboState > 1 then
     return 999;
   end
-  if not comboViable() then
-    return 0;
-  end
-  for _, unit in pairs(core.AssessLocalUnits(object, unitSelf:GetPosition(), skills.hook:GetRange()).EnemyHeroes) do
-    local location = predict_location(unit)
-    if not location == nil then
-      if generics.IsFreeLine(unitSelf.GetPosition, location) then
-        behaviorLib.herotarget = unit;
-        core.teamBotBrain:SetTeamTarget(unit)
-        return 999;
+--  if not comboViable() then
+--    return 0;
+--  end
+
+  for _, unit in pairs(core.localUnits["EnemyHeroes"]) do
+    local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), unit:GetPosition());
+    if nDistSq < skills.hook:GetRange() * skills.hook:GetRange() then
+      local location = predict_location(unit)
+      if location then
+        core.DrawXPosition(location, "red", 500)
+        if generics.IsFreeLine(unitSelf:GetPosition(), location, false) then
+          behaviorLib.herotarget = unit;
+          return 999;
+        end
       end
     end
   end
@@ -376,9 +377,9 @@ end
 
 local lastCast = 0;
 local wait = 0;
-function KillExecute(botBrain)
+local function KillExecute(botBrain)
   local unitSelf = core.unitSelf
-  if comboState >= 3 then
+  if comboState >= 2 then
     comboState = 1;
     lastCast = 0;
     return true;
@@ -386,20 +387,23 @@ function KillExecute(botBrain)
 
   local skill = unitSelf:GetAbility(combo[comboState])
   if skill and skill:CanActivate() and comboState == 1 then
-    core.OrderAbilityPosition(botBrain, hook, predict_location(behaviorLib.herotarget))
-    comboState = comboState + 1;
+    local location = predict_location(behaviorLib.herotarget);
+    if generics.IsFreeLine(unitSelf:GetPosition(), location, false) then 
+      core.OrderAbilityPosition(botBrain, skill, location);
+      comboState = comboState + 1;
+    end
   elseif skill and skill:CanActivate() and HasEnemiesInRange(unitSelf, 160) and comboState == 2 then
-    core.OrderAbility()
+    --core.OrderAbility()
     comboState = comboState + 1;
   end
   return false;
 end
 
 local KillBehavior = {}
---KillBehavior["Utility"] = KillUtility
---KillBehavior["Execute"] = KillExecute
---KillBehavior["Name"] = "Kill"
---tinsert(behaviorLib.tBehaviors, KillBehavior)
+KillBehavior["Utility"] = KillUtility
+KillBehavior["Execute"] = KillExecute
+KillBehavior["Name"] = "Kill"
+tinsert(behaviorLib.tBehaviors, KillBehavior)
 
 
 

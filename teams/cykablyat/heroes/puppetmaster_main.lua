@@ -110,6 +110,7 @@ object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride
 
 tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
+tinsert(behaviorLib.tBehaviors, generics.TargetBehavior)
 
 -- ComboWombo -behaviour
 

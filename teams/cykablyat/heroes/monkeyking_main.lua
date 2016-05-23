@@ -70,6 +70,7 @@ tinsert(behaviorLib.tBehaviors, behaviorLib.ShopBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.StashBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.HarassHeroBehavior)
 tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
+tinsert(behaviorLib.tBehaviors, generics.TargetBehavior)
 
 behaviorLib.StartingItems = 
   {"Item_LoggersHatchet", "Item_ManaPotion", "Item_MinorTotem", "Item_RunesOfTheBlight"}
@@ -265,19 +266,6 @@ function object:onthinkOverride(tGameVariables)
   self:onthinkOld(tGameVariables)
 
   -- custom code here
-  local target = nil
-  local index = 666
-  for _,enemy in pairs(core.localUnits["EnemyHeroes"]) do 
-    if enemy:IsStunned() then
-      for i,hero in pairs(attack_priority) do
-        if enemy.hero_name == hero and i < index then
-          target = enemy
-          index = i
-        end
-      end
-    end
-  end
-  core.teamBotBrain:SetTeamTarget(target)
 end
 object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride
