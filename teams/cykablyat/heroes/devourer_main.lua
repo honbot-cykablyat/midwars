@@ -117,6 +117,18 @@ behaviorLib.LateItems = {"Item_BehemothsHeart"}
 ------------------------------------------------------
 -- @param: tGameVariables
 -- @return: none
+local function HasEnemiesInRange(unit, range)
+  local enemies = core.CopyTable(core.localUnits["EnemyHeroes"])
+  local rangeSq = range * range
+  local myPos = unit:GetPosition()
+  for _, enemy in pairs(enemies) do
+    if Vector3.Distance2DSq(enemy:GetPosition(), myPos) < rangeSq then
+      return true
+    end
+  end
+  return false
+end
+
 function object:onthinkOverride(tGameVariables)
   self:onthinkOld(tGameVariables)
 
@@ -132,18 +144,6 @@ function object:onthinkOverride(tGameVariables)
 end
 object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride
-
-local function HasEnemiesInRange(unit, range)
-  local enemies = core.CopyTable(core.localUnits["EnemyHeroes"])
-  local rangeSq = range * range
-  local myPos = unit:GetPosition()
-  for _, enemy in pairs(enemies) do
-    if Vector3.Distance2DSq(enemy:GetPosition(), myPos) < rangeSq then
-      return true
-    end
-  end
-  return false
-end
 
 local function GetAttackDamageMinOnCreep(unitCreepTarget)
 	local unitSelf = core.unitSelf

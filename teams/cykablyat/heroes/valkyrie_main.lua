@@ -104,6 +104,10 @@ function object:SkillBuild()
   end
 end
 
+function sign(x)
+  return (x<0 and -1) or 1
+end
+
 function behaviorLib.CustomHarassUtility(unit)
   local unitSelf = core.unitSelf;
   local level = unitSelf:GetLevel() - unit:GetLevel();
