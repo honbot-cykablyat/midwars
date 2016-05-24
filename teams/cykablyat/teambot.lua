@@ -96,8 +96,9 @@ local teamTarget = nil
 function object:GetTeamTarget()
   if teamTarget then
     core.BotEcho(teamTarget:GetTypeName())
+    return self:GetMemoryUnit(teamTarget)
   end
-  return teamTarget
+  return nil
 end
 
 function object:SetTeamTarget(target)

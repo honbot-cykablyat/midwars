@@ -200,8 +200,9 @@ local function StunUtility(botBrain)
 end
 
 local function StunExecute(botBrain)
-  if skills.stun:CanActivate() then
-    core.OrderAbilityPosition(botBrain, skills.stun, stunTarget:GetPosition());
+  if stunTarget and skills.stun:CanActivate() then
+    local pos = generics.predict_location(core.unitSelf, stunTarget, 1000)
+    core.OrderAbilityPosition(botBrain, skills.stun, pos);
   end
 end
 
