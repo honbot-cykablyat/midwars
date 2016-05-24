@@ -134,6 +134,16 @@ end
 function object:onthinkOverride(tGameVariables)
   self:onthinkOld(tGameVariables)
 
+  BotEcho("yo")
+
+  local tAllies = core.CopyTable(core.localUnits["AllyUnits"])
+  for _, ally in pairs(tAllies) do
+    local name = ally:GetTypeName()
+    if name == "Projectile_Devourer_Ability1" then
+      BotEcho("DevoHook Detected!!!")
+    end
+  end
+
   if HasEnemiesInRange(core.unitSelf, 250) then
     if not core.unitSelf:HasState("State_Devourer_Ability2_Self") then
       object:OrderAbility(skills.fart)
@@ -458,7 +468,7 @@ local function KillExecute(botBrain)
   local skill = unitSelf:GetAbility(combo[comboState])
   if skill and skill:CanActivate() and comboState == 1 then
     local location = predict_location(behaviorLib.herotarget);
-    if generics.IsFreeLine(unitSelf:GetPosition(), location, false) then 
+    if generics.IsFreeLine(unitSelf:GetPosition(), location, false) then
       core.OrderAbilityPosition(botBrain, skill, location);
       comboState = comboState + 1;
     end
