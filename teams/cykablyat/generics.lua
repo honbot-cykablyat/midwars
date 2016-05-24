@@ -26,44 +26,25 @@ function takeHealUtility(botBrain)
 end
 
 function takeHealExecute(botBrain)
-  core.OrderPosition(botBrain, core.unitSelf, "move", healPos, "none", nil, true)
+  local healPos = core.teamBotBrain.healPosition
+  if healPos then
+  	botBrain:OrderPosition(core.unitSelf.object, "move", healPos, "none", nil, true)
+	end
 end
 
-TakeHealBehavior = {}
-TakeHealBehavior["Utility"] = takeHealUtility
-TakeHealBehavior["Execute"] = takeHealExecute
-TakeHealBehavior["Name"] = "HarassHero"
-
-function targetUtility(botBrain)
-  local target = nil
-  local index = 666
-  for _,enemy in pairs(core.localUnits["EnemyHeroes"]) do 
-    if enemy:IsStunned() then
-      for i,hero in pairs(core.teamBotBrain.attack_priority) do
-        if enemy.hero_name == hero and i < index then
-          target = enemy
-          index = i
-        end
-      end
-    end
-  end
-  core.teamBotBrain:SetTeamTarget(target)
-  return 0
-end
-
-function targetExecute(botBrain)
-end
-
-TargetBehavior = {}
-TargetBehavior["Utility"] = targetUtility
-TargetBehavior["Execute"] = targetExecute
-TargetBehavior["Name"] = "Target"
+generics.TakeHealBehavior = {}
+generics.TakeHealBehavior["Utility"] = takeHealUtility
+generics.TakeHealBehavior["Execute"] = takeHealExecute
+generics.TakeHealBehavior["Name"] = "TakeHeal"
 
 function generics.predict_location(unit, enemy, projectileSpeed)
   local enemyHeading = enemy:GetHeading()
   local selfPos = unit:GetPosition()
   local enemyPos = enemy:GetPosition()
   local enemySpeed = enemy:GetMoveSpeed()
+	if not enemyHeading then
+		return enemyPos
+	end
   local enemyMovement = enemySpeed * enemyHeading;
 
   local startPos = enemyPos;

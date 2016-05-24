@@ -67,8 +67,6 @@ tinsert(behaviorLib.tBehaviors, behaviorLib.RetreatFromThreatBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.PreGameBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.ShopBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.StashBehavior)
-tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
-tinsert(behaviorLib.tBehaviors, generics.TargetBehavior)
 
 behaviorLib.StartingItems =
   {"Item_CrushingClaws", "Item_GuardianRing", "Item_ManaBattery", "Item_MinorTotem"}
