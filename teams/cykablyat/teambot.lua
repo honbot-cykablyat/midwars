@@ -110,10 +110,13 @@ function object:GroupAndPushLogic()
 end
 
 -- Checks for nearest and lowest hp enemy hero
-local function FindBestEnemyTarget(position)
+local function FindBestEnemyTargetInRange(position, range)
   local bestTarget = nil
   if teamTarget then
     bestTarget = object:GetMemoryUnit(teamTarget)
+    if Vector3.Distance2D(position, bestTarget:GetPosition()) > range then
+      bestTarget = nil
+    end
   end
   for _, enemyHero in pairs(object.tEnemyHeroes) do
     if enemyHero:GetPosition() and enemyHero:IsAlive() then
@@ -122,11 +125,14 @@ local function FindBestEnemyTarget(position)
       if not bestTarget then
         bestTarget = enemyHero
       end
-
       local bestTargetDist = Vector3.Distance2D(position, bestTarget:GetPosition())
-      -- Checks if best target has more health than currently looped hero
-      -- Or if best target has less than 300 more HP and current hero is 200 closer
-      if (not bestTarget:IsStunned() and enemyHero:IsStunned()) or bestTarget:GetHealth() > enemyHealth or (enemyHealth - bestTarget:GetHealth() < 300 and bestTargetDist - 200 > distanceToPos) then
+      if distanceToPos then
+        bestTarget = enemyHero
+      end
+      -- Checks if current target is in range
+      -- then if it is more vulnerable than best target
+      -- then if best target has less than 300 more HP and current hero is 200 closer
+      if distanceToPos <= range and ((not bestTarget:IsStunned() and enemyHero:IsStunned()) or bestTarget:GetHealth() > enemyHealth or (enemyHealth - bestTarget:GetHealth() < 300 and bestTargetDist - 200 > distanceToPos)) then
         bestTarget = enemyHero
       end
     end
@@ -146,7 +152,7 @@ function object:onthinkOverride(tGameVariables)
   EvaluateTeamMapPosition()
   core.BotEcho(state)
   if allyTeam[1] then
-    teamTarget = FindBestEnemyTarget(allyTeam[1])
+    teamTarget = FindBestEnemyTargetInRange(allyTeam[1], 500)
   end
 end
 object.onthinkOld = object.onthink
