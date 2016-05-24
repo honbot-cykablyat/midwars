@@ -95,7 +95,10 @@ local healPosition = nil
 local teamTarget = nil
 
 function object:GetTeamTarget()
-  return teamTarget
+  if teamTarget then
+    return self:GetMemoryUnit(teamTarget)
+  end
+  return nil
 end
 
 function object:SetTeamTarget(target)
