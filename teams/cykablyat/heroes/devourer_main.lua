@@ -33,8 +33,9 @@ runfile "bots/botbraincore.lua"
 runfile "bots/eventsLib.lua"
 runfile "bots/metadata.lua"
 runfile "bots/behaviorLib.lua"
+runfile "bots/teams/cykablyat/generics.lua"
 
-local core, eventsLib, behaviorLib, metadata, skills = object.core, object.eventsLib, object.behaviorLib, object.metadata, object.skills
+local generics, core, eventsLib, behaviorLib, metadata, skills = object.generics, object.core, object.eventsLib, object.behaviorLib, object.metadata, object.skills
 
 local print, ipairs, pairs, string, table, next, type, tinsert, tremove, tsort, format, tostring, tonumber, strfind, strsub
   = _G.print, _G.ipairs, _G.pairs, _G.string, _G.table, _G.next, _G.type, _G.table.insert, _G.table.remove, _G.table.sort, _G.string.format, _G.tostring, _G.tonumber, _G.string.find, _G.string.sub
@@ -153,7 +154,6 @@ local harassOldUtility = behaviorLib.HarassHeroBehavior["Utility"]
 local harassOldExecute = behaviorLib.HarassHeroBehavior["Execute"]
 
 local function harassUtilityOverride(botBrain)
-  BotEcho("checking harass: " .. core.teamBotBrain:GetState())
   if core.teamBotBrain.GetState and core.teamBotBrain:GetState() == "LANE_AGGRESSIVELY" then
     return 100
   end
@@ -458,7 +458,7 @@ local function KillExecute(botBrain)
   local skill = unitSelf:GetAbility(combo[comboState])
   if skill and skill:CanActivate() and comboState == 1 then
     local location = predict_location(behaviorLib.herotarget);
-    if generics.IsFreeLine(unitSelf:GetPosition(), location, false) then 
+    if generics.IsFreeLine(unitSelf:GetPosition(), location, false) then
       core.OrderAbilityPosition(botBrain, skill, location);
       comboState = comboState + 1;
     end
