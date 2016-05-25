@@ -49,7 +49,7 @@ local function EvaluateTeamMapPosition()
     return
   end
 
-  core.BotEcho(allyTeam[2] .. " " .. enemyTeam[2])
+  --core.BotEcho(allyTeam[2] .. " " .. enemyTeam[2])
 
   local enemyBasePos = core.enemyMainBaseStructure:GetPosition()
   local allyTower = core.GetClosestAllyTower(enemyBasePos)
@@ -87,15 +87,15 @@ function object:GetState()
 end
 
 
-local attack_priority = {"Hero_Fairy", "Hero_PuppetMaster", "Hero_Valkyrie", "Hero_MonkeyKing", "Hero_Devourer"};
+object.attack_priority = {"Hero_Fairy", "Hero_PuppetMaster", "Hero_Valkyrie", "Hero_MonkeyKing", "Hero_Devourer"};
 
-local healPosition = nil
+object.healPosition = nil
 
 local teamTarget = nil
 
 function object:GetTeamTarget()
   if teamTarget then
-    core.BotEcho(teamTarget:GetTypeName())
+    --core.BotEcho(teamTarget:GetTypeName())
     return self:GetMemoryUnit(teamTarget)
   end
   return nil
@@ -150,7 +150,7 @@ function object:onthinkOverride(tGameVariables)
   self:onthinkOld(tGameVariables)
   -- custom code here
   EvaluateTeamMapPosition()
-  core.BotEcho(state)
+  --core.BotEcho(state)
   if allyTeam[1] then
     teamTarget = FindBestEnemyTargetInRange(allyTeam[1], 500)
   end

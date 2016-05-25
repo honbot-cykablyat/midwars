@@ -70,7 +70,6 @@ tinsert(behaviorLib.tBehaviors, behaviorLib.ShopBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.StashBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.HarassHeroBehavior)
 tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
-tinsert(behaviorLib.tBehaviors, generics.TargetBehavior)
 
 local bSkillsValid = false
 function object:SkillBuild()
@@ -148,7 +147,7 @@ local harassOldExecute = behaviorLib.HarassHeroBehavior["Execute"]
 
 local function harassUtilityOverride(botBrain)
   if core.teamBotBrain.GetState and core.teamBotBrain:GetState() == "LANE_AGGRESSIVELY" then
-    return 100
+    return 70
   end
   return harassOldUtility(botBrain)
 end
@@ -183,23 +182,33 @@ local function throwSpearUtility(botBrain)
   if not skills.javelin:CanActivate() then
     return 0
   end
-  if core.teamBotBrain:GetTeamTarget() then
-    --return 0
+  local target = core.teamBotBrain:GetTeamTarget()
+  if target then
+    local pos = generics.predict_location(unitSelf, target, 857.14)
+    local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), pos);
+    if nDistSq < 2000 * 2000 then
+      if generics.IsFreeLine(unitSelf:GetPosition(), pos, true) then
+        stunTarget = target
+        return 80   
+      end
+    end
   end
-  local target = nil
   local health = 1
   for _, enemy in pairs(core.localUnits["EnemyHeroes"]) do
     if enemy:GetHealthPercent() < health then
       local pos = generics.predict_location(unitSelf, enemy, 857.14)
-      if generics.IsFreeLine(unitSelf:GetPosition(), pos, true) then
-        target = enemy
-        health = enemy:GetHealthPercent()
+      local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), pos);
+      if nDistSq < 2000 * 2000 then
+        if generics.IsFreeLine(unitSelf:GetPosition(), pos, true) then
+          target = enemy
+          health = enemy:GetHealthPercent()
+        end
       end
     end
   end
   if target then
     stunTarget = target
-    return 25
+    return 60
   end
   return 0
 end
@@ -208,8 +217,11 @@ local function throwSpearExecute(botBrain)
   local unitSelf = core.unitSelf;
   if stunTarget and skills.javelin:CanActivate() then
     local pos = generics.predict_location(unitSelf, stunTarget, 857.14)
-    if generics.IsFreeLine(unitSelf:GetPosition(), pos, true) then
-      core.OrderAbilityPosition(botBrain, skills.javelin, pos);
+    local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), pos);
+    if nDistSq < 2000 * 2000 then
+      if generics.IsFreeLine(unitSelf:GetPosition(), pos, true) then
+        core.OrderAbilityPosition(botBrain, skills.javelin, pos);
+      end
     end
   end
 end
@@ -275,7 +287,7 @@ local function LastHitUtility(botBrain)
     if nDistSq < nAttackRangeSq then
       if nMinionHP <= GetAttackDamageMinOnCreep(unitWeakestMinion) then --core.GetFinalAttackDamageAverage(unitSelf) * (1 - unitWeakestMinion:GetPhysicalResistance()) then
         -- LastHit Minion
-        nUtility = 100 --25
+        nUtility = 70 --25
       else
         -- Harass Minion
         -- PositionSelf 20 and AttackCreeps 21
@@ -370,6 +382,41 @@ LastHitBehaviour["Utility"] = LastHitUtility
 LastHitBehaviour["Execute"] = LastHitExecute
 LastHitBehaviour["Name"] = "LastHit"
 tinsert(behaviorLib.tBehaviors, LastHitBehaviour)
+
+local function escapeUtility(botBrain)
+  local unitSelf = core.unitSelf
+  if eventsLib.recentDamageSec > 0.025 * core.unitSelf:GetMaxHealth() then
+    if skills.ulti:CanActivate() then
+      return 100
+    end
+    if skills.leap:CanActivate() then
+      local angle = core.HeadingDifference(unitSelf, core.GetClosestAllyTower(unitSelf:GetPosition()):GetPosition())
+      if angle < 0.25 then
+        return 100
+      end
+    end
+  end
+  return 0
+end
+
+local function escapeExecute(botBrain)
+  local unitSelf = core.unitSelf
+  if skills.ulti:CanActivate() then
+    return core.OrderAbility(botBrain, skills.ulti)
+  end
+  if skills.leap:CanActivate() then
+    local angle = core.HeadingDifference(unitSelf, core.GetClosestAllyTower(unitSelf:GetPosition()):GetPosition())
+    if angle < 0.25 then
+      return core.OrderAbility(botBrain, skills.leap)
+    end
+  end
+end
+
+local EscapeBehaviour = {}
+EscapeBehaviour["Utility"] = escapeUtility
+EscapeBehaviour["Execute"] = escapeExecute
+EscapeBehaviour["Name"] = "Escape"
+tinsert(behaviorLib.tBehaviors, EscapeBehaviour)
 ----------------------------------------------
 --            oncombatevent override        --
 -- use to check for infilictors (fe. buffs) --
@@ -378,7 +425,6 @@ tinsert(behaviorLib.tBehaviors, LastHitBehaviour)
 -- @return: none
 function object:oncombateventOverride(EventData)
   self:oncombateventOld(EventData)
-
   -- custom code here
 end
 -- override combat event trigger function.

@@ -14,7 +14,7 @@ object.bAttackCommands = true
 object.bAbilityCommands = true
 object.bOtherCommands = true
 
-object.bReportBehavior = true
+object.bReportBehavior = false
 object.bDebugUtility = false
 object.bDebugExecute = false
 
@@ -110,7 +110,6 @@ object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride
 
 tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
-tinsert(behaviorLib.tBehaviors, generics.TargetBehavior)
 
 -- Custom harass behaviour
 
