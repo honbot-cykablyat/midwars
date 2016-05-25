@@ -90,3 +90,62 @@ function generics.IsFreeLine(pos1, pos2, ignoreAllies)
   end
   return true
 end
+
+function generics.CalculateEnemyTargetValue(enemy, position, range)
+  local value = 0
+  if enemy:GetPosition() == nil then
+    return -1000
+  end
+  local dist = Vector3.Distance2D(enemy:GetPosition(), position)
+  if not enemy:IsAlive() then
+    return -1000
+  elseif not enemy:IsValid() then
+    return -1000
+  elseif dist > range then
+    return -1000
+  end
+
+  value = math.floor(100 - dist / 100)
+
+  local health = enemy:GetHealth()
+  value = value - math.floor(health / 50)
+
+  if enemy:IsStunned() then
+    value = value + 50
+  end
+
+  return value
+end
+
+-- Checks for nearest and lowest hp enemy hero
+function generics.FindBestEnemyTargetInRange(range)
+  local bestTarget = nil
+  local bestTargetValue = nil
+  -- BotEcho("hi")
+  -- core.BotEcho(tostring(core.localUnits["Enemies"]))
+  -- core.BotEcho(tostring(object.tEnemyHeroes))
+  -- core.printTable(core.localUnits["EnemyUnits"])
+  -- for _, enemyBuilding in pairs(core.localUnits["EnemyBuildings"]) do
+  --   BotEcho(enemyBuilding:GetTypeName())
+  --   if enemyBuilding:IsBase() then
+  --     bestTarget = enemyBuilding
+  --     bestTargetValue = math.ceiling(0.5 - enemyBuilding:GetHealthPercent()) * (1 - enemyBuilding:GetHealthPercent()) * 200
+  --     -- BotEcho("base!")
+  --   end
+  -- end
+  for _, enemyUnit in pairs(core.localUnits["EnemyCreeps"]) do
+    if enemyUnit:GetTypeName() == "Pet_PuppetMaster_Ability4" then
+      -- BotEcho("was puppet!")
+      bestTarget = enemyUnit
+      bestTargetValue = 110
+    end
+  end
+  for _, enemyHero in pairs(core.teamBotBrain:GetEnemyTeam()) do
+    local value = generics.CalculateEnemyTargetValue(enemyHero, core.unitSelf:GetPosition(), range)
+    if bestTarget == nil or bestTargetValue < value then
+      bestTarget = enemyHero
+      bestTargetValue = value
+    end
+  end
+  return bestTarget
+end

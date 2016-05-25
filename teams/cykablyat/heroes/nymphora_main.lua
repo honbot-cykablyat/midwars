@@ -67,6 +67,7 @@ tinsert(behaviorLib.tBehaviors, behaviorLib.RetreatFromThreatBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.PreGameBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.ShopBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.StashBehavior)
+tinsert(behaviorLib.tBehaviors, behaviorLib.HarassHeroBehavior)
 
 behaviorLib.StartingItems =
   {"Item_CrushingClaws", "Item_GuardianRing", "Item_ManaBattery", "Item_MinorTotem"}
@@ -146,19 +147,29 @@ local harassOldUtility = behaviorLib.HarassHeroBehavior["Utility"]
 local harassOldExecute = behaviorLib.HarassHeroBehavior["Execute"]
 
 local function harassUtilityOverride(botBrain)
-  if core.teamBotBrain.GetState and core.teamBotBrain:GetState() == "LANE_AGGRESSIVELY" then
-    return 100
+  local old = harassOldUtility(botBrain)
+  local hpPc = core.unitSelf:GetHealthPercent()
+  local state = core.teamBotBrain:AnalyzeAllyHeroPosition(core.unitSelf)
+  -- BotEcho("state is " .. state)
+  if state == "ATTACK" and hpPc > 0.15 then
+    return old + 80
+  elseif state == "HARASS" and hpPc > 0.15 then
+    return old + 40
+  else
+    return old
   end
-  return harassOldUtility(botBrain)
 end
 
 local function harassExecuteOverride(botBrain)
   local unitSelf = core.unitSelf
-  local targetHero = core.teamBotBrain:FindBestEnemyTargetInRange(unitSelf:GetPosition(), 1000)
+  -- local targetHero = core.teamBotBrain:FindBestEnemyTargetInRange(unitSelf:GetPosition(), 1000)
+  local targetHero = generics.FindBestEnemyTargetInRange(800)
   if targetHero == nil then
     return false
   end
   behaviorLib.heroTarget = targetHero
+
+  core.DrawXPosition(targetHero:GetPosition(), "red", 400)
 
   local nTargetDistanceSq = Vector3.Distance2DSq(unitSelf:GetPosition(), targetHero:GetPosition())
 
@@ -184,13 +195,38 @@ end
 behaviorLib.HarassHeroBehavior["Utility"] = harassUtilityOverride
 behaviorLib.HarassHeroBehavior["Execute"] = harassExecuteOverride
 
+-- custom destroy building behavior
+
+local function DestroyBuildingUtility(botBrain)
+  for _, enemyBuilding in pairs(core.localUnits["EnemyBuildings"]) do
+    -- BotEcho(enemyBuilding:GetTypeName())
+    if enemyBuilding:IsBase() then
+      behaviorLib.heroTarget = enemyBuilding
+      local value = math.ceil(0.75 - enemyBuilding:GetHealthPercent()) * (1 - enemyBuilding:GetHealthPercent()) * 250
+      return value
+    end
+  end
+  return 0
+end
+
+local function DestroyBuildingExecute(botBrain)
+  core.OrderAttack(botBrain, core.unitSelf, behaviorLib.heroTarget)
+  return true
+end
+
+local DestroyBuildingBehavior = {}
+DestroyBuildingBehavior["Utility"] = DestroyBuildingUtility
+DestroyBuildingBehavior["Execute"] = DestroyBuildingExecute
+DestroyBuildingBehavior["Name"] = "DestroyBuilding"
+tinsert(behaviorLib.tBehaviors, DestroyBuildingBehavior)
+
 local stunTarget = nil
 local function StunUtility(botBrain)
   if not skills.stun:CanActivate() then
     return 0
   end
-  local target = core.teamBotBrain:GetTeamTarget()
-  if target then
+  local target = generics.FindBestEnemyTargetInRange(600)
+  if target and target:IsHero() then
     stunTarget = target
     return 100
   end
@@ -215,7 +251,7 @@ end
 
 local function StunExecute(botBrain)
   if stunTarget and skills.stun:CanActivate() then
-    local pos = generics.predict_location(core.unitSelf, stunTarget, 1000)
+    local pos = generics.predict_location(core.unitSelf, stunTarget, 700)
     core.OrderAbilityPosition(botBrain, skills.stun, pos);
   end
 end

@@ -135,19 +135,29 @@ local harassOldUtility = behaviorLib.HarassHeroBehavior["Utility"]
 local harassOldExecute = behaviorLib.HarassHeroBehavior["Execute"]
 
 local function harassUtilityOverride(botBrain)
-  if core.teamBotBrain.GetState and core.teamBotBrain:GetState() == "LANE_AGGRESSIVELY" then
-    return 70
+  local old = harassOldUtility(botBrain)
+  local hpPc = core.unitSelf:GetHealthPercent()
+  local state = core.teamBotBrain:AnalyzeAllyHeroPosition(core.unitSelf)
+  -- BotEcho("state is " .. state)
+  if state == "ATTACK" and hpPc > 0.15 then
+    return old + 80
+  elseif state == "HARASS" and hpPc > 0.15 then
+    return old + 40
+  else
+    return old
   end
-  return harassOldUtility(botBrain)
 end
 
 local function harassExecuteOverride(botBrain)
   local unitSelf = core.unitSelf
-  local targetHero = core.teamBotBrain:FindBestEnemyTargetInRange(unitSelf:GetPosition(), 1000)
+  -- local targetHero = core.teamBotBrain:FindBestEnemyTargetInRange(unitSelf:GetPosition(), 1000)
+  local targetHero = generics.FindBestEnemyTargetInRange(1000)
   if targetHero == nil then
     return false
   end
   behaviorLib.heroTarget = targetHero
+
+  core.DrawXPosition(targetHero:GetPosition(), "red", 400)
 
   local bActionTaken = false
 
@@ -170,8 +180,8 @@ local function throwSpearUtility(botBrain)
   if not skills.javelin:CanActivate() then
     return 0
   end
-  local target = core.teamBotBrain:GetTeamTarget()
-  if target then
+  local target = generics.FindBestEnemyTargetInRange(800)
+  if target and target:IsHero() then
     local pos = generics.predict_location(unitSelf, target, 857.14)
     local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), pos);
     if nDistSq < 1000 * 1000 then
@@ -229,6 +239,30 @@ end
 object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride
 
+-- custom destroy building behavior
+
+local function DestroyBuildingUtility(botBrain)
+  for _, enemyBuilding in pairs(core.localUnits["EnemyBuildings"]) do
+    -- BotEcho(enemyBuilding:GetTypeName())
+    if enemyBuilding:IsBase() then
+      BotEcho("base!")
+      behaviorLib.heroTarget = enemyBuilding
+      return math.ceil(0.5 - enemyBuilding:GetHealthPercent()) * (1 - enemyBuilding:GetHealthPercent()) * 200
+    end
+  end
+  return 0
+end
+
+local function DestroyBuildingExecute(botBrain)
+  core.OrderAttack(botBrain, core.unitSelf, behaviorLib.heroTarget)
+  return true
+end
+
+local DestroyBuildingBehavior = {}
+DestroyBuildingBehavior["Utility"] = DestroyBuildingUtility
+DestroyBuildingBehavior["Execute"] = DestroyBuildingExecute
+DestroyBuildingBehavior["Name"] = "DestroyBuilding"
+tinsert(behaviorLib.tBehaviors, DestroyBuildingBehavior)
 
 local function GetAttackDamageMinOnCreep(unitCreepTarget)
   local unitSelf = core.unitSelf
@@ -251,11 +285,11 @@ local function LastHitUtility(botBrain)
   local nMinionHP = 99999999
   local nUtility = 0
   for _, unit in pairs(tEnemies) do
-    if not unit:IsInvulnerable() and not unit:IsHero() and unit:GetOwnerPlayerID() == nil then
+    if not unit:IsInvulnerable() and not unit:IsHero() and unit:GetOwnerPlayerID() == nil and unit:IsAlive() then
       local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), unit:GetPosition())
       local nAttackRangeSq = core.GetAbsoluteAttackRangeToUnit(unitSelf, unit, true)
       local nTempHP = unit:GetHealth()
-      if nDistSq < nAttackRangeSq * 3 * 3 and nTempHP < nMinionHP then
+      if nDistSq < nAttackRangeSq * 3 * 3 and nTeampHP and nTempHP < nMinionHP then
         unitWeakestMinion = unit
         nMinionHP = nTempHP
       end

@@ -143,32 +143,30 @@ local function EvaluateTeamMapPosition()
   -- core.BotEcho("size: " .. enemyTeam[2])
 
   -- if one of teams position is nil
-  if not object.allyTeam[1] or not object.enemyTeam[1] then
-    state = "LANE_PASSIVELY"
-    return
-  end
+  -- if not object.allyTeam[1] or not object.enemyTeam[1] then
+  --   state = "LANE_PASSIVELY"
+  --   return
+  -- end
+  --
+  -- -- core.BotEcho("Enemies: " .. object.enemyTeam[2] .. " Allies: " .. object.allyTeam[2])
+  --
+  -- local enemyBasePos = core.enemyMainBaseStructure:GetPosition()
+  -- local allyTower = core.GetClosestAllyTower(enemyBasePos)
+  -- local allyTowerPos = allyTower:GetPosition()
+  -- local enemyTower = core.GetClosestEnemyTower(allyTowerPos)
+  -- local enemyTowerPos = enemyTower:GetPosition()
+  --
+  -- local distToAllyTower = Vector3.Distance2D(object.allyTeam[1], allyTowerPos)
+  -- local distToEnemyTower = Vector3.Distance2D(object.allyTeam[1], enemyTowerPos)
 
-  -- core.BotEcho("Enemies: " .. object.enemyTeam[2] .. " Allies: " .. object.allyTeam[2])
+  -- if object.enemyTeam[2] < object.allyTeam[2] then
+  --   state = "LANE_AGGRESSIVELY"
+  -- elseif object.enemyTeam[2] > object.allyTeam[2] then
+  --   state = "TEAM_RETREAT"
+  -- else
+  --   state = "LANE_PASSIVELY"
+  -- end
 
-  local enemyBasePos = core.enemyMainBaseStructure:GetPosition()
-  local allyTower = core.GetClosestAllyTower(enemyBasePos)
-  local allyTowerPos = allyTower:GetPosition()
-  local enemyTower = core.GetClosestEnemyTower(allyTowerPos)
-  local enemyTowerPos = enemyTower:GetPosition()
-
-  local distToAllyTower = Vector3.Distance2D(object.allyTeam[1], allyTowerPos)
-  local distToEnemyTower = Vector3.Distance2D(object.allyTeam[1], enemyTowerPos)
-
-  if object.enemyTeam[2] < object.allyTeam[2] then
-    state = "LANE_AGGRESSIVELY"
-  elseif object.enemyTeam[2] > object.allyTeam[2] then
-    state = "TEAM_RETREAT"
-  else
-    state = "LANE_PASSIVELY"
-  end
-
-  core.DrawXPosition(object.allyTeam[1], "green", 400)
-  core.DrawXPosition(object.enemyTeam[1], "red", 400)
 end
 
 function object:GetState()
@@ -248,12 +246,10 @@ end
 function object:FindBestEnemyTargetInRange(position, range)
   local bestTarget = nil
   local bestTargetValue = nil
-  -- if teamTarget then
-  --   bestTarget = object:GetMemoryUnit(teamTarget)
-  --   if not bestTarget or not bestTarget:GetPosition() or Vector3.Distance2D(position, bestTarget:GetPosition()) > range then
-  --     bestTarget = nil
-  --   end
-  -- end
+  -- BotEcho("hi")
+  -- core.BotEcho(tostring(core.localUnits["Enemies"]))
+  -- core.BotEcho(tostring(object.tEnemyHeroes))
+  -- core.printTable(core.localUnits["EnemyCreeps"])
   for _, enemyHero in pairs(object.tEnemyHeroes) do
     local value = CalculateEnemyTargetValue(enemyHero, position, range)
     if bestTarget == nil or bestTargetValue < value then
@@ -273,7 +269,7 @@ end
 function object:onthinkOverride(tGameVariables)
   self:onthinkOld(tGameVariables)
   -- custom code here
-  EvaluateTeamMapPosition()
+  -- EvaluateTeamMapPosition()
   -- core.BotEcho(state)
   -- if allyTeam[1] then
   --   teamTarget = FindBestEnemyTargetInRange(allyTeam[1], 500)
