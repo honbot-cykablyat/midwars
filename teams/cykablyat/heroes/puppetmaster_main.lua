@@ -14,7 +14,7 @@ object.bAttackCommands = true
 object.bAbilityCommands = true
 object.bOtherCommands = true
 
-object.bReportBehavior = false
+object.bReportBehavior = true
 object.bDebugUtility = false
 object.bDebugExecute = false
 
@@ -118,7 +118,6 @@ local harassOldUtility = behaviorLib.HarassHeroBehavior["Utility"]
 local harassOldExecute = behaviorLib.HarassHeroBehavior["Execute"]
 
 local function harassUtilityOverride(botBrain)
-  BotEcho("checking harass")
   if core.teamBotBrain.GetState and core.teamBotBrain:GetState() == "LANE_AGGRESSIVELY" then
     return 100
   end
@@ -126,7 +125,7 @@ local function harassUtilityOverride(botBrain)
 end
 
 local function harassExecuteOverride(botBrain)
-  -- local targetHero = behaviorLib.heroTarget
+  -- local targetHero = behaviorLib.targetHero
   local targetHero = core.teamBotBrain:GetTeamTarget()
   if targetHero == nil or not targetHero:IsValid() then
     return false --can not execute, move on to the next behavior
@@ -137,28 +136,28 @@ local function harassExecuteOverride(botBrain)
 
   if core.CanSeeUnit(botBrain, targetHero) then
 
-    local nTargetDistanceSq = Vector3.Distance2DSq(unitSelf:GetPosition(), heroTarget:GetPosition())
+    local nTargetDistanceSq = Vector3.Distance2DSq(unitSelf:GetPosition(), targetHero:GetPosition())
 
     local ulti = skills.ulti
     local nRange = ulti:GetRange()
-    if not heroTarget:IsMagicImmune() and ulti:CanActivate() and nTargetDistanceSq < (nRange * nRange) then
-      bActionTaken = core.OrderAbilityEntity(botBrain, ulti, heroTarget)
+    if not targetHero:IsMagicImmune() and ulti:CanActivate() and nTargetDistanceSq < (nRange * nRange) then
+      bActionTaken = core.OrderAbilityEntity(botBrain, ulti, targetHero)
     end
 
     local hold = skills.hold
     nRange = hold:GetRange()
-    if not bActionTaken and not heroTarget:IsStunned() and not heroTarget:IsMagicImmune() and hold:CanActivate() and not heroTarget:HasState("State_PuppetMaster_Ability2") and nTargetDistanceSq < (nRange * nRange) then
-      bActionTaken = core.OrderAbilityEntity(botBrain, hold, heroTarget)
+    if not bActionTaken and not targetHero:IsStunned() and not targetHero:IsMagicImmune() and hold:CanActivate() and not targetHero:HasState("State_PuppetMaster_Ability2") and nTargetDistanceSq < (nRange * nRange) then
+      bActionTaken = core.OrderAbilityEntity(botBrain, hold, targetHero)
     end
 
     local show = skills.show
     nRange = show:GetRange()
-    local unitsNearby = core.AssessLocalUnits(botBrain, heroTarget, 400)
+    local unitsNearby = core.AssessLocalUnits(botBrain, targetHero, 400)
 
     local nEnemies = core.NumberElements(unitsNearby.Enemies)
 
-    if not bActionTaken and not heroTarget:IsStunned() and not heroTarget:IsMagicImmune() and not heroTarget:HasState("State_PuppetMaster_Ability1") and show:CanActivate() and nTargetDistanceSq < (nRange * nRange) and nEnemies > 0 then
-      bActionTaken = core.OrderAbilityEntity(botBrain, show, heroTarget)
+    if not bActionTaken and not targetHero:IsStunned() and not targetHero:IsMagicImmune() and not targetHero:HasState("State_PuppetMaster_Ability1") and show:CanActivate() and nTargetDistanceSq < (nRange * nRange) and nEnemies > 0 then
+      bActionTaken = core.OrderAbilityEntity(botBrain, show, targetHero)
     end
   end
 
@@ -289,7 +288,8 @@ local ComboBehavior = {}
 ComboBehavior["Utility"] = ComboUtility
 ComboBehavior["Execute"] = ComboExecute
 ComboBehavior["Name"] = "Combo"
-tinsert(behaviorLib.tBehaviors, ComboBehavior)
+-- disable this behaviour
+-- tinsert(behaviorLib.tBehaviors, ComboBehavior)
 
 ----------------------------------------------
 --            oncombatevent override        --

@@ -59,6 +59,26 @@ TargetBehavior["Utility"] = targetUtility
 TargetBehavior["Execute"] = targetExecute
 TargetBehavior["Name"] = "Target"
 
+function generics.predict_location(unit, enemy, projectileSpeed)
+  local enemyHeading = enemy:GetHeading()
+  local selfPos = unit:GetPosition()
+  local enemyPos = enemy:GetPosition()
+  local enemySpeed = enemy:GetMoveSpeed()
+  local enemyMovement = enemySpeed * enemyHeading;
+
+  local startPos = enemyPos;
+  local t = Vector3.Distance2D(selfPos, startPos) / projectileSpeed;
+  while true do
+    local newPos = startPos + t * enemyMovement;
+    local newT = Vector3.Distance2D(selfPos, newPos) / projectileSpeed;
+    if math.abs(newT - t) < 0.001 then
+      return newPos
+    end
+    t = newT
+  end
+end
+
+
 function generics.IsFreeLine(pos1, pos2, ignoreAllies)
   local tAllies = core.CopyTable(core.localUnits["AllyUnits"])
   local tEnemies = core.CopyTable(core.localUnits["EnemyCreeps"])

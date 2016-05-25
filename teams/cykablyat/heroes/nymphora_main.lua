@@ -133,7 +133,6 @@ local harassOldUtility = behaviorLib.HarassHeroBehavior["Utility"]
 local harassOldExecute = behaviorLib.HarassHeroBehavior["Execute"]
 
 local function harassUtilityOverride(botBrain)
-  BotEcho("checking harass ")
   if core.teamBotBrain.GetState and core.teamBotBrain:GetState() == "LANE_AGGRESSIVELY" then
     return 100
   end
@@ -179,6 +178,7 @@ local function StunUtility(botBrain)
   end
   local target = core.teamBotBrain:GetTeamTarget()
   if target then
+    stunTarget = target
     return 100
   end
   local health = 1
@@ -200,8 +200,9 @@ local function StunUtility(botBrain)
 end
 
 local function StunExecute(botBrain)
-  if skills.stun:CanActivate() then
-    core.OrderAbilityPosition(botBrain, skills.stun, stunTarget:GetPosition());
+  if stunTarget and skills.stun:CanActivate() then
+    local pos = generics.predict_location(core.unitSelf, stunTarget, 1000)
+    core.OrderAbilityPosition(botBrain, skills.stun, pos);
   end
 end
 
@@ -210,7 +211,6 @@ stunBehaviour["Utility"] = StunUtility
 stunBehaviour["Execute"] = StunExecute
 stunBehaviour["Name"] = "Stun"
 tinsert(behaviorLib.tBehaviors, stunBehaviour)
-
 
 local healTarget = nil
 local function HealUtility(botBrain)

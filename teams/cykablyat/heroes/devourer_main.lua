@@ -33,8 +33,9 @@ runfile "bots/botbraincore.lua"
 runfile "bots/eventsLib.lua"
 runfile "bots/metadata.lua"
 runfile "bots/behaviorLib.lua"
+runfile "bots/teams/cykablyat/generics.lua"
 
-local core, eventsLib, behaviorLib, metadata, skills = object.core, object.eventsLib, object.behaviorLib, object.metadata, object.skills
+local generics, core, eventsLib, behaviorLib, metadata, skills = object.generics, object.core, object.eventsLib, object.behaviorLib, object.metadata, object.skills
 
 local print, ipairs, pairs, string, table, next, type, tinsert, tremove, tsort, format, tostring, tonumber, strfind, strsub
   = _G.print, _G.ipairs, _G.pairs, _G.string, _G.table, _G.next, _G.type, _G.table.insert, _G.table.remove, _G.table.sort, _G.string.format, _G.tostring, _G.tonumber, _G.string.find, _G.string.sub
@@ -136,10 +137,10 @@ function object:onthinkOverride(tGameVariables)
 
   BotEcho("yo")
 
-  local tAllies = core.CopyTable(core.localUnits["AllyUnits"])
-  for _, ally in pairs(tAllies) do
-    local name = ally:GetTypeName()
-    if name == "Projectile_Devourer_Ability1" then
+  local tEnemies = core.CopyTable(core.localUnits["EnemyUnits"])
+  for _, enemy in pairs(tEnemies) do
+    local state = enemy:HasState("State_Devourer_Ability1")
+    if state then
       BotEcho("DevoHook Detected!!!")
     end
   end
@@ -163,7 +164,6 @@ local harassOldUtility = behaviorLib.HarassHeroBehavior["Utility"]
 local harassOldExecute = behaviorLib.HarassHeroBehavior["Execute"]
 
 local function harassUtilityOverride(botBrain)
-  BotEcho("checking harass: " .. core.teamBotBrain:GetState())
   if core.teamBotBrain.GetState and core.teamBotBrain:GetState() == "LANE_AGGRESSIVELY" then
     return 100
   end
@@ -391,29 +391,6 @@ local function CustomHarassUtilityOverride(hero)
 end
 behaviorLib.CustomHarassUtility = CustomHarassUtilityOverride
 
-local function predict_location(enemy)
-  local unitSelf = core.unitSelf
-  local enemyHeading = enemy:GetHeading()
-  local selfPos = unitSelf:GetPosition()
-  local enemyPos = enemy:GetPosition()
-  local hookSpeed = 1600
-  local enemySpeed = enemy:GetMoveSpeed()
-  local enemyMovement = enemySpeed * enemyHeading;
-  local t_max = 1100 / hookSpeed
-
-  local startPos = enemyPos;
-  local t = Vector3.Distance2D(selfPos, startPos) / hookSpeed;
-  while true do
-    local newPos = startPos + t * enemyMovement;
-    local newT = Vector3.Distance2D(selfPos, newPos) / hookSpeed;
-    if math.abs(newT - t) < 0.001 then
-      return newPos
-    elseif newT > t_max then
-      return nil
-    end
-    t = newT
-  end
-end
 
 local combo = {0, 3};
 
@@ -440,15 +417,12 @@ local function KillUtility(botBrain)
 --  end
 
   for _, unit in pairs(core.localUnits["EnemyHeroes"]) do
-    local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), unit:GetPosition());
+    local location = generics.predict_location(unitSelf, unit, 1600)
+    local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), location);
     if nDistSq < skills.hook:GetRange() * skills.hook:GetRange() then
-      local location = predict_location(unit)
-      if location then
-        core.DrawXPosition(location, "red", 500)
-        if generics.IsFreeLine(unitSelf:GetPosition(), location, false) then
-          behaviorLib.herotarget = unit;
-          return 999;
-        end
+      if generics.IsFreeLine(unitSelf:GetPosition(), location, false) then
+        behaviorLib.herotarget = unit;
+        return 999;
       end
     end
   end
@@ -467,7 +441,8 @@ local function KillExecute(botBrain)
 
   local skill = unitSelf:GetAbility(combo[comboState])
   if skill and skill:CanActivate() and comboState == 1 then
-    local location = predict_location(behaviorLib.herotarget);
+
+    local location = generics.predict_location(unitSelf, behaviorLib.herotarget, 1600);
     if generics.IsFreeLine(unitSelf:GetPosition(), location, false) then
       core.OrderAbilityPosition(botBrain, skill, location);
       comboState = comboState + 1;

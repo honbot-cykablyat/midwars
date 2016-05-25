@@ -147,7 +147,6 @@ local harassOldUtility = behaviorLib.HarassHeroBehavior["Utility"]
 local harassOldExecute = behaviorLib.HarassHeroBehavior["Execute"]
 
 local function harassUtilityOverride(botBrain)
-  BotEcho("checking harass ")
   if core.teamBotBrain.GetState and core.teamBotBrain:GetState() == "LANE_AGGRESSIVELY" then
     return 100
   end
@@ -177,6 +176,49 @@ end
 
 behaviorLib.HarassHeroBehavior["Utility"] = harassUtilityOverride
 behaviorLib.HarassHeroBehavior["Execute"] = harassExecuteOverride
+
+local stunTarget = nil
+local function throwSpearUtility(botBrain)
+  local unitSelf = core.unitSelf;
+  if not skills.javelin:CanActivate() then
+    return 0
+  end
+  if core.teamBotBrain:GetTeamTarget() then
+    --return 0
+  end
+  local target = nil
+  local health = 1
+  for _, enemy in pairs(core.localUnits["EnemyHeroes"]) do
+    if enemy:GetHealthPercent() < health then
+      local pos = generics.predict_location(unitSelf, enemy, 857.14)
+      if generics.IsFreeLine(unitSelf:GetPosition(), pos, true) then
+        target = enemy
+        health = enemy:GetHealthPercent()
+      end
+    end
+  end
+  if target then
+    stunTarget = target
+    return 25
+  end
+  return 0
+end
+
+local function throwSpearExecute(botBrain)
+  local unitSelf = core.unitSelf;
+  if stunTarget and skills.javelin:CanActivate() then
+    local pos = generics.predict_location(unitSelf, stunTarget, 857.14)
+    if generics.IsFreeLine(unitSelf:GetPosition(), pos, true) then
+      core.OrderAbilityPosition(botBrain, skills.javelin, pos);
+    end
+  end
+end
+
+local JavelinBehavior = {}
+JavelinBehavior["Utility"] = throwSpearUtility
+JavelinBehavior["Execute"] = throwSpearExecute
+JavelinBehavior["Name"] = "Javelin"
+tinsert(behaviorLib.tBehaviors, JavelinBehavior)
 
 ------------------------------------------------------
 --            onthink override                      --
