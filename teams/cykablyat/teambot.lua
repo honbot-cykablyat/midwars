@@ -14,33 +14,66 @@ local core = object.core
 
 -- Custom code
 
-function object:CalculateClosestEnemyToAllyHero(ally)
-  local closestEnemy = nil
-  local closestPos = nil
-  local closestDist = nil
-  local allyPos = ally:GetPosition()
-  for _, enemyHero in pairs(object.tEnemyHeroes) do
-    if not enemyHero:GetPosition() and object:GetMemoryUnit(enemyHero) then
-      enemyHero = object:GetMemoryUnit(enemyHero)
-    end
-    if enemyHero:GetPosition() and enemyHero:IsAlive() then
-      local enemyPos = enemyHero:GetPosition()
-      if not closestEnemy then
-        closestEnemy = enemyHero
-        closestPos = enemyPos
-      end
-      local distDifference = Vector3.Distance2D(closestPos, allyPos) - Vector3.Distance2D(enemyPos, allyPos)
-      if distDifference < 0 and closestEnemy:GetHealth() > enemyHero:GetHealth() then
-        closestEnemy = enemyHero
-        closestPos = enemyPos
-      end
-      if distDifference < 200 and closestEnemy:GetHealth() > enemyHero:GetHealth() + 200 then
-        closestEnemy = enemyHero
-        closestPos = enemyPos
+local function GetNearbyTeams(hero)
+  local nearbyAllies = {}
+  local nearbyEnemies = {}
+  local allyTeamHealthPc = 0
+  local enemyTeamHealthPc = 0
+  for _, ally in pairs(object.tAllyHeroes) do
+    local allyPos = ally:GetPosition()
+    if allyPos and allyPos.x and ally:IsAlive() then
+      local dist = Vector3.Distance2D(allyPos, hero:GetPosition())
+      if dist < 1000 then
+        tinsert(nearbyAllies, ally)
+        allyTeamHealthPc = allyTeamHealthPc + ally:GetHealthPercent()
       end
     end
   end
-  return closestEnemy
+  for _, enemy in pairs(object.tEnemyHeroes) do
+    local enemyPos = enemy:GetPosition()
+    if enemyPos and enemyPos.x and enemy:IsAlive() then
+      local dist = Vector3.Distance2D(enemyPos, hero:GetPosition())
+      if dist < 1000 then
+        tinsert(nearbyEnemies, enemy)
+        enemyTeamHealthPc = enemyTeamHealthPc + enemy:GetHealthPercent()
+      end
+    end
+  end
+  -- core.BotEcho(allyTeamHealthPc / table.getn(nearbyAllies))
+  local allyTeamAvgHpPc = nil
+  local enemyTeamAvgHpPc = nil
+  if table.getn(nearbyAllies) == 0 then
+    allyTeamAvgHpPc = 0
+  else
+    allyTeamAvgHpPc = allyTeamHealthPc / table.getn(nearbyAllies)
+  end
+  if table.getn(nearbyEnemies) == 0 then
+    enemyTeamAvgHpPc = 0
+  else
+    enemyTeamAvgHpPc = enemyTeamHealthPc / table.getn(nearbyEnemies)
+  end
+  return {
+    table.getn(nearbyAllies),
+    table.getn(nearbyEnemies),
+    allyTeamAvgHpPc,
+    enemyTeamAvgHpPc
+  }
+end
+
+function object:AnalyzeAllyHeroPosition(hero)
+  local nearbyTeams = GetNearbyTeams(hero)
+  -- core.BotEcho(nearbyTeams[1] .. " " .. nearbyTeams[2] .. " " .. nearbyTeams[3] .. " " .. nearbyTeams[4])
+  if nearbyTeams[2] > nearbyTeams[1] and nearbyTeams[4] > nearbyTeams[3] then
+    return "RETREAT"
+  elseif nearbyTeams[2] == 0 or nearbyTeams[2] > nearbyTeams[1] or (nearbyTeams[2] == nearbyTeams[1] and nearbyTeams[4] >= nearbyTeams[3]) then
+    return "GROUP"
+  elseif (nearbyTeams[2] == nearbyTeams[1] and nearbyTeams[3] > nearbyTeams[4]) or (nearbyTeams[1] > nearbyTeams[2] and nearbyTeams[4] > nearbyTeams[3]) then
+    return "HARASS"
+  elseif nearbyTeams[1] > nearbyTeams[2] and nearbyTeams[3] > nearbyTeams[4] then
+    return "ATTACK"
+  else
+    return "GROUP"
+  end
 end
 
 local function CalculateTeamPositionAndSize(heroes)
@@ -71,16 +104,19 @@ local function CalculateTeamPositionAndSize(heroes)
     -- core.printTable(hero)
 
     if hero:GetPosition() and hero:IsAlive() then
+      -- core.BotEcho("is valid")
       teamHealthPc = teamHealthPc + hero:GetHealthPercent()
       tinsert(validHeroes, hero)
     end
   end
+  -- local validTeam = FindGroupCenter(validHeroes)
   local validTeam = {}
   local teamPosition = HoN.GetGroupCenter(validHeroes)
   for _, hero in pairs(validHeroes) do
     -- core.BotEcho("pos: " .. tostring(hero:GetPosition()))
     -- core.BotEcho("x " .. hero:GetPosition().x .. " y " .. hero:GetPosition().y)
     local distanceToCenter = Vector3.Distance2D(teamPosition, hero:GetPosition())
+    -- core.BotEcho("which distance was " .. distanceToCenter)
     if distanceToCenter < 700 then
       tinsert(validTeam, hero)
     end
@@ -112,7 +148,7 @@ local function EvaluateTeamMapPosition()
     return
   end
 
-  core.BotEcho("Enemies: " .. object.enemyTeam[2] .. " Allies: " .. object.allyTeam[2])
+  -- core.BotEcho("Enemies: " .. object.enemyTeam[2] .. " Allies: " .. object.allyTeam[2])
 
   local enemyBasePos = core.enemyMainBaseStructure:GetPosition()
   local allyTower = core.GetClosestAllyTower(enemyBasePos)
@@ -130,18 +166,6 @@ local function EvaluateTeamMapPosition()
   else
     state = "LANE_PASSIVELY"
   end
-
-  -- if distToAllyTower < 1000 then
-  --   state = "DEFEND_ALLY_TOWER"
-  -- elseif distToAllyTower <= distToEnemyTower then
-  --   state = "LANE_PASSIVELY"
-  -- elseif distToAllyTower > distToEnemyTower then
-  --   state = "LANE_PASSIVELY"
-  -- elseif distToEnemyTower < 750 then
-  --   state = "AVOID_ENEMY_TOWER"
-  -- else
-  --   state = "LANE_PASSIVELY"
-  -- end
 
   core.DrawXPosition(object.allyTeam[1], "green", 400)
   core.DrawXPosition(object.enemyTeam[1], "red", 400)
@@ -161,7 +185,7 @@ object.teamTarget = nil
 function object:GetAllyTeam()
   local team = {}
   for _, hero in pairs(object.tAllyHeroes) do
-    if hero:GetPosition() and hero:IsAlive() then
+    if hero:GetPosition() and hero:GetPosition().x and hero:IsAlive() then
       tinsert(team, hero)
     end
   end
@@ -171,25 +195,11 @@ end
 function object:GetEnemyTeam()
   local team = {}
   for _, hero in pairs(object.tEnemyHeroes) do
-    -- If hero is not visible fetch it from memory
-    core.BotEcho("heron positio : " .. tostring(hero:GetPosition()))
-    if not hero:GetPosition() and object:GetMemoryUnit(hero) then
-      hero = object:GetMemoryUnit(hero)
-    end
-    if hero:GetPosition() and hero:IsAlive() then
+    if hero:GetPosition() and hero:GetPosition().x and hero:IsAlive() then
       tinsert(team, hero)
     end
   end
   return team
-end
-
-function object:GetEnemyTeamPosition()
-  -- core.BotEcho(enemyTeam[1].x)
-  -- return nil
-  if enemyTeam[1] then
-    return enemyTeam[1]
-  end
-  return nil
 end
 
 function object:GetTeamTarget()
@@ -264,7 +274,7 @@ function object:onthinkOverride(tGameVariables)
   self:onthinkOld(tGameVariables)
   -- custom code here
   EvaluateTeamMapPosition()
-  core.BotEcho(state)
+  -- core.BotEcho(state)
   -- if allyTeam[1] then
   --   teamTarget = FindBestEnemyTargetInRange(allyTeam[1], 500)
   -- end

@@ -183,26 +183,6 @@ local function harassUtilityOverride(botBrain)
 end
 
 local function harassExecuteOverride(botBrain)
-  -- moves the hero to enemy teams position
-  -- local enemyTeamPos = core.teamBotBrain:GetEnemyTeamPosition()
-  -- if enemyTeamPos and core.teamBotBrain:GetState() == "LANE_AGGRESSIVELY" then
-  --   BotEcho("ordering devourer attack!")
-  --   -- BotEcho("enemy team pos : " .. enemyTeamPos.y)
-  --   -- core.OrderPosition()
-  --   -- core.OrderPosition(botBrain, core.unitSelf, "move", enemyTeamPos)
-  --   -- botBrain:OrderPosition(core.unitSelf, "move", enemyTeamPos)
-  --   -- core.OrderPosition(botBrain, core.unitSelf, "move", core.unitSelf:GetPosition(), "none", nil, true)
-  --   botBrain:OrderPosition(core.unitSelf.object, "move", enemyTeamPos)
-  -- end
-
-  -- local targetHero = core.teamBotBrain:GetTeamTarget()
-  -- if targetHero == nil then
-  --   targetHero = core.teamBotBrain:CalculateClosestEnemyToAllyHero(core.unitSelf)
-  -- end
-  -- if targetHero == nil or not targetHero:IsValid() then
-  --   return false --can not execute, move on to the next behavior
-  -- end
-
   local unitSelf = core.unitSelf
   local targetHero = core.teamBotBrain:FindBestEnemyTargetInRange(unitSelf:GetPosition(), 800)
   if targetHero == nil then
@@ -485,7 +465,7 @@ local function findHookPlaceUtility(botBrain)
         inRange = true
       end
     elseif nDistSq < range * 2 * range * 2 then
-      inRange = true    
+      inRange = true
     end
   end
   if not inRange then

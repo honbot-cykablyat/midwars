@@ -14,7 +14,7 @@ object.bAttackCommands = true
 object.bAbilityCommands = true
 object.bOtherCommands = true
 
-object.bReportBehavior = true
+object.bReportBehavior = false
 object.bDebugUtility = false
 object.bDebugExecute = false
 
@@ -268,17 +268,6 @@ local function harassUtilityOverride(botBrain)
 end
 
 local function harassExecuteOverride(botBrain)
-  -- local targetHero = behaviorLib.heroTarget
-  -- local targetHero = core.teamBotBrain:GetTeamTarget()
-  -- if targetHero == nil then
-  --   targetHero = core.teamBotBrain:CalculateClosestEnemyToAllyHero(core.unitSelf)
-  -- end
-  -- if targetHero == nil or not targetHero:IsValid() then
-  --   return false --can not execute, move on to the next behavior
-  -- end
-  --
-  -- local unitSelf = core.unitSelf
-
   local unitSelf = core.unitSelf
   local targetHero = core.teamBotBrain:FindBestEnemyTargetInRange(unitSelf:GetPosition(), 800)
   if targetHero == nil then

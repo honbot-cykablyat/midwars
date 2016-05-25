@@ -105,6 +105,8 @@ function object:onthinkOverride(tGameVariables)
   -- BotEcho("lasdfasdf")
   -- BotEcho(core.tMyLane)
   -- core.printTable(core.tMyLane)
+  local state = core.teamBotBrain:AnalyzeAllyHeroPosition(core.unitSelf)
+  -- BotEcho("puppet state: " .. state)
 end
 object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride
@@ -124,7 +126,20 @@ end
 
 behaviorLib.HealAtWellBehavior["Utility"] = HealAtWellUtilityOverride
 
--- end healAtWell
+-- custom retreat behavior
+
+-- local function TeamRetreatUtility(botBrain)
+--   if core.teamBotBrain:GetState and core.teamBotBrain:GetState() == "TEAM_RETREAT" then
+--     return 100
+--   end
+-- end
+--
+-- local function TeamRetreatExecute(botBrain)
+--   if stunTarget and skills.stun:CanActivate() then
+--     local pos = generics.predict_location(core.unitSelf, stunTarget, 1000)
+--     core.OrderAbilityPosition(botBrain, skills.stun, pos);
+--   end
+-- end
 
 -- Custom harass behaviour
 
@@ -139,14 +154,6 @@ local function harassUtilityOverride(botBrain)
 end
 
 local function harassExecuteOverride(botBrain)
-  -- local targetHero = behaviorLib.targetHero
-  -- local targetHero = core.teamBotBrain:GetTeamTarget()
-  -- if targetHero == nil or not targetHero:IsValid() then
-  --   return false --can not execute, move on to the next behavior
-  -- end
-  --
-  -- local unitSelf = core.unitSelf
-
   local unitSelf = core.unitSelf
   local targetHero = core.teamBotBrain:FindBestEnemyTargetInRange(unitSelf:GetPosition(), 1000)
   if targetHero == nil then
