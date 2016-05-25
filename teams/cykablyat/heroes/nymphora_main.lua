@@ -181,20 +181,21 @@ local function StunUtility(botBrain)
   end
   local health = 1
   for _, enemy in pairs(core.localUnits["EnemyHeroes"]) do
-    if enemy:GetHealthPercent() < health then
-      target = enemy
-      health = enemy:GetHealthPercent()
+    local pos = generics.predict_location(core.unitSelf, enemy, 1000);
+    local nDistSq = Vector3.Distance2DSq(core.unitSelf:GetPosition(), pos);
+    local range = skills.stun:GetRange() * 1.33
+    if nDistSq < range * range then
+      if enemy:GetHealthPercent() < health then
+        target = enemy
+        health = enemy:GetHealthPercent()
+      end
     end
   end
-  if health < 0.80 then
-    stunTarget = target
-    return 25
+  if not target then
+    return 0
   end
-  if health < 0.70 then
-    stunTarget = target
-    return 100
-  end
-  return 0
+  stunTarget = target
+  return 80
 end
 
 local function StunExecute(botBrain)
@@ -232,8 +233,9 @@ end
 
 local function HealExecute(botBrain)
   if skills.heal:CanActivate() then
-    core.teamBotBrain.healPosition = healTarget:GetPosition();
-    core.OrderAbilityPosition(botBrain, skills.heal, healTarget:GetPosition());
+    local pos = generics.predict_location(core.unitSelf, healTarget, 1000)
+    core.teamBotBrain.healPosition = pos;
+    core.OrderAbilityPosition(botBrain, skills.heal, pos);
   end
 end
 
@@ -251,7 +253,11 @@ tinsert(behaviorLib.tBehaviors, healBehaviour)
 -- @return: none
 function object:oncombateventOverride(EventData)
   self:oncombateventOld(EventData)
-
+  if EventData["SourceUnit"] and core.unitSelf:GetUniqueID() == EventData["SourceUnit"]:GetUniqueID() then
+    if EventData["Type"] == "Ability" then
+      core.teamBotBrain.healPosition = nil;
+    end
+  end
   -- custom code here
 end
 -- override combat event trigger function.

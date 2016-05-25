@@ -68,7 +68,6 @@ tinsert(behaviorLib.tBehaviors, behaviorLib.RetreatFromThreatBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.PreGameBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.ShopBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.StashBehavior)
-tinsert(behaviorLib.tBehaviors, behaviorLib.HarassHeroBehavior)
 tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
 
 behaviorLib.StartingItems =
@@ -122,34 +121,8 @@ end
 
 function behaviorLib.CustomHarassUtility(unit)
   local unitSelf = core.unitSelf;
-  local level = unitSelf:GetLevel() - unit:GetLevel();
-  level = sign(level) * level * level;
-  local mana = unitSelf:GetMana() / skills.dash:GetManaCost() * 3;
-  local health = unitSelf:GetHealthPercent() * 7 + (1 - unit:GetHealthPercent()) * 6;
-  local cds = 0;
-  for _, skill in pairs(skills) do
-    if skill:CanActivate() then
-      cds = cds + 2;
-    end
-  end
-  local harass = level + mana + health + cds;
-  if core.GetClosestAllyTower(unitSelf:GetPosition(), 900) and core.GetClosestAllyTower(unit:GetPosition(), 1000) then
-    harass = harass + 20;
-  end
-  local enemies_close = 0;
-  for _, unit in pairs(core.localUnits["EnemyHeroes"]) do
-    local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), unit:GetPosition());
-    if nDistSq < skills.dash:GetRange() * skills.dash:GetRange() then
-      enemies_close = enemies_close + 1;
-    end
-  end
-  if enemies_close == 1 then
-    harass = harass + 20;
-  end
-  if enemies_close > 1 then
-    return 0;
-  end
-  return harass;
+  local health = unitSelf:GetHealthPercent();
+  return -(1 - health) * 5
 end
 
 local function HarassHeroExecute(botBrain)
@@ -278,7 +251,7 @@ local function harassUtilityOverride(botBrain)
   if core.teamBotBrain.GetState and core.teamBotBrain:GetState() == "LANE_AGGRESSIVELY" then
     return 100
   end
-  return harassOldUtility(botBrain)
+  return 0 --harassOldUtility(botBrain)
 end
 
 local function harassExecuteOverride(botBrain)
@@ -395,6 +368,35 @@ KillBehavior["Execute"] = KillExecute
 KillBehavior["Name"] = "Kill"
 tinsert(behaviorLib.tBehaviors, KillBehavior)
 
+local function escapeUtility(botBrain)
+  local unitSelf = core.unitSelf
+  if eventsLib.recentDamageSec > 0.025 * core.unitSelf:GetMaxHealth() then
+    if skills.dash:CanActivate() then
+      local angle = core.HeadingDifference(unitSelf, core.GetClosestAllyTower(unitSelf:GetPosition()):GetPosition())
+      if angle < 0.25 then
+        return 100
+      end
+    end
+  end
+  return 0
+end
+
+local function escapeExecute(botBrain)
+  local unitSelf = core.unitSelf
+  if skills.dash:CanActivate() then
+    local angle = core.HeadingDifference(unitSelf, core.GetClosestAllyTower(unitSelf:GetPosition()):GetPosition())
+    if angle < 0.25 then
+      return core.OrderAbility(botBrain, skills.dash)
+    end
+  end
+end
+
+local EscapeBehaviour = {}
+EscapeBehaviour["Utility"] = escapeUtility
+EscapeBehaviour["Execute"] = escapeExecute
+EscapeBehaviour["Name"] = "Escape"
+tinsert(behaviorLib.tBehaviors, EscapeBehaviour)
+
 local function GetAttackDamageMinOnCreep(unitCreepTarget)
   local unitSelf = core.unitSelf
   local nDamageMin = unitSelf:GetAttackDamageMax(); --core.GetFinalAttackDamageAverage(unitSelf)
@@ -435,7 +437,7 @@ local function LastHitUtility(botBrain)
     if nDistSq < nAttackRangeSq then
       if nMinionHP <= GetAttackDamageMinOnCreep(unitWeakestMinion) then --core.GetFinalAttackDamageAverage(unitSelf) * (1 - unitWeakestMinion:GetPhysicalResistance()) then
         -- LastHit Minion
-        nUtility = 100 --25
+        nUtility = 25
       else
         -- Harass Minion
         -- PositionSelf 20 and AttackCreeps 21

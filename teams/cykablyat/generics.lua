@@ -28,8 +28,8 @@ end
 function takeHealExecute(botBrain)
   local healPos = core.teamBotBrain.healPosition
   if healPos then
-  	botBrain:OrderPosition(core.unitSelf.object, "move", healPos, "none", nil, true)
-	end
+    botBrain:OrderPosition(core.unitSelf.object, "move", healPos, "none", nil, true)
+  end
 end
 
 generics.TakeHealBehavior = {}
@@ -42,16 +42,16 @@ function generics.predict_location(unit, enemy, projectileSpeed)
   local selfPos = unit:GetPosition()
   local enemyPos = enemy:GetPosition()
   local enemySpeed = enemy:GetMoveSpeed()
-	if not enemyHeading then
-		return enemyPos
-	end
+  if not enemyHeading then
+    return enemyPos
+  end
   local enemyMovement = enemySpeed * enemyHeading;
 
   local startPos = enemyPos;
-  local t = Vector3.Distance2D(selfPos, startPos) / projectileSpeed;
+  local t = Vector3.Distance(selfPos, startPos) / projectileSpeed;
   while true do
     local newPos = startPos + t * enemyMovement;
-    local newT = Vector3.Distance2D(selfPos, newPos) / projectileSpeed;
+    local newT = Vector3.Distance(selfPos, newPos) / projectileSpeed;
     if math.abs(newT - t) < 0.001 then
       return newPos
     end

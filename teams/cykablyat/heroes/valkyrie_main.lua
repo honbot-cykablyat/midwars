@@ -112,34 +112,8 @@ end
 
 function behaviorLib.CustomHarassUtility(unit)
   local unitSelf = core.unitSelf;
-  local level = unitSelf:GetLevel() - unit:GetLevel();
-  level = sign(level) * level * level;
-  local mana = unitSelf:GetMana() / skills.javelin:GetManaCost() * 3;
-  local health = unitSelf:GetHealthPercent() * 7 + (1 - unit:GetHealthPercent()) * 6;
-  local cds = 0;
-  for _, skill in pairs(skills) do
-    if skill:CanActivate() then
-      cds = cds + 2;
-    end
-  end
-  local harass = level + mana + health + cds;
-  if core.GetClosestAllyTower(unitSelf:GetPosition(), 900) and core.GetClosestAllyTower(unit:GetPosition(), 1000) then
-    harass = harass + 20;
-  end
-  local enemies_close = 0;
-  for _, unit in pairs(core.localUnits["EnemyHeroes"]) do
-    local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), unit:GetPosition());
-    if nDistSq < 200 * 200 then
-      enemies_close = enemies_close + 1;
-    end
-  end
-  if enemies_close == 1 then
-    harass = harass + 20;
-  end
-  if enemies_close > 1 then
-    return 0;
-  end
-  return harass;
+  local health = unitSelf:GetHealthPercent();
+  return -(1 - health) * 5
 end
 
 local harassOldUtility = behaviorLib.HarassHeroBehavior["Utility"]
@@ -189,7 +163,7 @@ local function throwSpearUtility(botBrain)
     if nDistSq < 2000 * 2000 then
       if generics.IsFreeLine(unitSelf:GetPosition(), pos, true) then
         stunTarget = target
-        return 80   
+        return 50   
       end
     end
   end
@@ -208,7 +182,7 @@ local function throwSpearUtility(botBrain)
   end
   if target then
     stunTarget = target
-    return 60
+    return 40
   end
   return 0
 end
@@ -217,12 +191,7 @@ local function throwSpearExecute(botBrain)
   local unitSelf = core.unitSelf;
   if stunTarget and skills.javelin:CanActivate() then
     local pos = generics.predict_location(unitSelf, stunTarget, 857.14)
-    local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), pos);
-    if nDistSq < 2000 * 2000 then
-      if generics.IsFreeLine(unitSelf:GetPosition(), pos, true) then
-        core.OrderAbilityPosition(botBrain, skills.javelin, pos);
-      end
-    end
+    core.OrderAbilityPosition(botBrain, skills.javelin, pos);
   end
 end
 
@@ -287,7 +256,7 @@ local function LastHitUtility(botBrain)
     if nDistSq < nAttackRangeSq then
       if nMinionHP <= GetAttackDamageMinOnCreep(unitWeakestMinion) then --core.GetFinalAttackDamageAverage(unitSelf) * (1 - unitWeakestMinion:GetPhysicalResistance()) then
         -- LastHit Minion
-        nUtility = 70 --25
+        nUtility = 60 --25
       else
         -- Harass Minion
         -- PositionSelf 20 and AttackCreeps 21
@@ -386,14 +355,14 @@ tinsert(behaviorLib.tBehaviors, LastHitBehaviour)
 local function escapeUtility(botBrain)
   local unitSelf = core.unitSelf
   if eventsLib.recentDamageSec > 0.025 * core.unitSelf:GetMaxHealth() then
-    if skills.ulti:CanActivate() then
-      return 100
-    end
     if skills.leap:CanActivate() then
       local angle = core.HeadingDifference(unitSelf, core.GetClosestAllyTower(unitSelf:GetPosition()):GetPosition())
       if angle < 0.25 then
         return 100
       end
+    end
+    if skills.ulti:CanActivate() then
+      return 100
     end
   end
   return 0
@@ -401,14 +370,14 @@ end
 
 local function escapeExecute(botBrain)
   local unitSelf = core.unitSelf
-  if skills.ulti:CanActivate() then
-    return core.OrderAbility(botBrain, skills.ulti)
-  end
   if skills.leap:CanActivate() then
     local angle = core.HeadingDifference(unitSelf, core.GetClosestAllyTower(unitSelf:GetPosition()):GetPosition())
     if angle < 0.25 then
       return core.OrderAbility(botBrain, skills.leap)
     end
+  end
+  if skills.ulti:CanActivate() then
+    return core.OrderAbility(botBrain, skills.ulti)
   end
 end
 

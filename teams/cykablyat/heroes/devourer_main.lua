@@ -14,7 +14,7 @@ object.bAttackCommands = true
 object.bAbilityCommands = true
 object.bOtherCommands = true
 
-object.bReportBehavior = false
+object.bReportBehavior = true
 object.bDebugUtility = false
 object.bDebugExecute = false
 
@@ -257,7 +257,7 @@ local function LastHitUtility(botBrain)
     if nDistSq < nAttackRangeSq then
       if nMinionHP <= GetAttackDamageMinOnCreep(unitWeakestMinion) then --core.GetFinalAttackDamageAverage(unitSelf) * (1 - unitWeakestMinion:GetPhysicalResistance()) then
         -- LastHit Minion
-        nUtility = 100 --25
+        nUtility = 25 --25
       else
         -- Harass Minion
         -- PositionSelf 20 and AttackCreeps 21
@@ -380,74 +380,110 @@ local function CustomHarassUtilityOverride(hero)
 end
 behaviorLib.CustomHarassUtility = CustomHarassUtilityOverride
 
-
-local combo = {0, 3};
-
-local function comboViable()
-  local unitSelf = core.unitSelf
-  local mana = 0
-  for _, v in pairs(combo) do
-    if not v:CanActivate() then
-      return false;
-    end
-    mana = mana + v:GetManaCost();
-  end
-  return mana < core.unitSelf:GetMana();
-end
-
-local comboState = 1;
-local function KillUtility(botBrain)
+local hookTarget = nil
+local function hookUtility(botBrain)
   local unitSelf = core.unitSelf;
-  if comboState > 1 then
-    return 999;
+  if not skills.hook:CanActivate() then
+    return 0
   end
---  if not comboViable() then
---    return 0;
---  end
 
   for _, unit in pairs(core.localUnits["EnemyHeroes"]) do
-    local location = generics.predict_location(unitSelf, unit, 1600)
-    local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), location);
-    if nDistSq < skills.hook:GetRange() * skills.hook:GetRange() then
-      if generics.IsFreeLine(unitSelf:GetPosition(), location, false) then
-        behaviorLib.herotarget = unit;
-        return 999;
+    if unit and unit:GetPosition() then
+      local location = generics.predict_location(unitSelf, unit, 1600)
+      local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), location);
+      if nDistSq < skills.hook:GetRange() * skills.hook:GetRange() then
+        if generics.IsFreeLine(unitSelf:GetPosition(), location, false) then
+          hookTarget = unit;
+          return 100;
+        end
       end
     end
   end
   return 0;
 end
 
-local lastCast = 0;
-local wait = 0;
-local function KillExecute(botBrain)
+local function hookExecute(botBrain)
   local unitSelf = core.unitSelf
-  if comboState >= 2 then
-    comboState = 1;
-    lastCast = 0;
-    return true;
-  end
 
-  local skill = unitSelf:GetAbility(combo[comboState])
-  if skill and skill:CanActivate() and comboState == 1 then
-    local location = generics.predict_location(unitSelf, behaviorLib.herotarget, 1600);
+  if skills.hook:CanActivate() then
+    local location = generics.predict_location(unitSelf, hookTarget, 1600);
     if generics.IsFreeLine(unitSelf:GetPosition(), location, false) then
-      core.OrderAbilityPosition(botBrain, skill, location);
-      comboState = comboState + 1;
+      core.OrderAbilityPosition(botBrain, skills.hook, location);
     end
-  elseif skill and skill:CanActivate() and HasEnemiesInRange(unitSelf, 160) and comboState == 2 then
-    --core.OrderAbility()
-    comboState = comboState + 1;
   end
-  return false;
 end
 
-local KillBehavior = {}
-KillBehavior["Utility"] = KillUtility
-KillBehavior["Execute"] = KillExecute
-KillBehavior["Name"] = "Kill"
-tinsert(behaviorLib.tBehaviors, KillBehavior)
+local HookBehavior = {}
+HookBehavior["Utility"] = hookUtility
+HookBehavior["Execute"] = hookExecute
+HookBehavior["Name"] = "Hook"
+tinsert(behaviorLib.tBehaviors, HookBehavior)
 
+local function findHookPlaceUtility(botBrain)
+  local unitSelf = core.unitSelf;
+  if not skills.hook:CanActivate() then
+    return 0
+  end
+  if not core.teamBotBrain.enemyTeam or not core.teamBotBrain.allyTeam then
+    return 0
+  end
 
+  local inRange = false
+  for _, unit in pairs(core.localUnits["EnemyHeroes"]) do
+    local location = generics.predict_location(unitSelf, unit, 1600)
+    local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), location);
+    local range = skills.hook:GetRange();
+    if nDistSq < range * range then
+      if generics.IsFreeLine(unitSelf:GetPosition(), location, false) then
+        return 0;
+      end
+    elseif nDistSq < range * 1.5 * range * 1.5 then
+      inRange = true
+    end
+  end
+  if not inRange then
+    return 0
+  end
+  return 60;
+end
+
+local function findHookPlaceExecute(botBrain)
+  local unitSelf = core.unitSelf;
+  local oX = unitSelf:GetPosition().x;
+  local oY = unitSelf:GetPosition().y;
+  local cX = core.teamBotBrain.enemyTeam[1].x;
+  local cY = core.teamBotBrain.enemyTeam[1].y;
+  local tX = core.teamBotBrain.allyTeam[1].x
+  local tY = core.teamBotBrain.allyTeam[1].y
+  local d
+  if cY == tY then
+    if oY < tY then
+      d = 100
+    else
+      d = -100
+    end
+  elseif oY - tY > ((cX - tX) / (cY - tY)) * (oX - tX) then
+    d = 100
+  else 
+    d = -100
+  end
+  local deltaX = oX - cX;
+  local deltaY = oY - cY;
+  local radius = math.sqrt(deltaX * deltaX + deltaY * deltaY);
+  local orthoX = -deltaY * d / radius;
+  local orthoY = deltaX * d / radius;
+  local newDeltaX = deltaX + orthoX;
+  local newDeltaY = deltaY + orthoY;
+  local newLength = math.sqrt(newDeltaX * newDeltaX + newDeltaY * newDeltaY);
+  local aX = cX + newDeltaX * radius / newLength;
+  local aY = cY + newDeltaY * radius / newLength;
+  botBrain:OrderPosition(core.unitSelf.object, "move", Vector3.Create(aX, aY), "none", nil, true)
+end
+
+local FindHookPlaceBehavior = {}
+FindHookPlaceBehavior["Utility"] = findHookPlaceUtility
+FindHookPlaceBehavior["Execute"] = findHookPlaceExecute
+FindHookPlaceBehavior["Name"] = "FindHook"
+tinsert(behaviorLib.tBehaviors, FindHookPlaceBehavior)
 
 BotEcho('finished loading devourer_main')
