@@ -156,7 +156,7 @@ object.attack_priority = {"Hero_Fairy", "Hero_PuppetMaster", "Hero_Valkyrie", "H
 
 object.healPosition = nil
 
-local teamTarget = nil
+object.teamTarget = nil
 
 function object:GetAllyTeam()
   local team = {}
@@ -193,15 +193,15 @@ function object:GetEnemyTeamPosition()
 end
 
 function object:GetTeamTarget()
-  if teamTarget then
-    --core.BotEcho(teamTarget:GetTypeName())
-    return self:GetMemoryUnit(teamTarget)
+  if object.teamTarget then
+    --core.BotEcho(object.teamTarget:GetTypeName())
+    return self:GetMemoryUnit(object.teamTarget)
   end
   return nil
 end
 
 function object:SetTeamTarget(target)
-  teamTarget = target
+  object.teamTarget = target
 end
 
 function object:GroupAndPushLogic()

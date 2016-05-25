@@ -65,7 +65,7 @@ function generics.IsFreeLine(pos1, pos2, ignoreAllies)
   local tEnemies = core.CopyTable(core.localUnits["EnemyCreeps"])
   local distanceLine = Vector3.Distance2DSq(pos1, pos2)
   local x1, x2, y1, y2 = pos1.x, pos2.x, pos1.y, pos2.y
-  local spaceBetween = 50 * 50
+  local spaceBetween = 100 * 100 -- 50 * 50
   if not ignoreAllies then
     for _, ally in pairs(tAllies) do
       local posAlly = ally:GetPosition()
