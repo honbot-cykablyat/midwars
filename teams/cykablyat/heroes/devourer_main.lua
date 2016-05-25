@@ -134,9 +134,7 @@ end
 function object:onthinkOverride(tGameVariables)
   self:onthinkOld(tGameVariables)
 
-  BotEcho("yo")
-
-  local tEnemies = core.CopyTable(core.localUnits["EnemyUnits"])
+  local tEnemies = core.CopyTable(core.localUnits["EnemyHeroes"])
   for _, enemy in pairs(tEnemies) do
     local state = enemy:HasState("State_Devourer_Ability1")
     if state then
