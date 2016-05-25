@@ -122,7 +122,7 @@ end
 function behaviorLib.CustomHarassUtility(unit)
   local unitSelf = core.unitSelf;
   local health = unitSelf:GetHealthPercent();
-  return -(1 - health) * 5
+  return -(1 - health) * 10
 end
 
 local function HarassHeroExecute(botBrain)

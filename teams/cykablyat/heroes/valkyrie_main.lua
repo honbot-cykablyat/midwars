@@ -113,7 +113,7 @@ end
 function behaviorLib.CustomHarassUtility(unit)
   local unitSelf = core.unitSelf;
   local health = unitSelf:GetHealthPercent();
-  return -(1 - health) * 5
+  return -(1 - health) * 10
 end
 
 local harassOldUtility = behaviorLib.HarassHeroBehavior["Utility"]
@@ -160,7 +160,7 @@ local function throwSpearUtility(botBrain)
   if target then
     local pos = generics.predict_location(unitSelf, target, 857.14)
     local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), pos);
-    if nDistSq < 2000 * 2000 then
+    if nDistSq < 1000 * 1000 then
       if generics.IsFreeLine(unitSelf:GetPosition(), pos, true) then
         stunTarget = target
         return 50   
@@ -172,7 +172,7 @@ local function throwSpearUtility(botBrain)
     if enemy:GetHealthPercent() < health then
       local pos = generics.predict_location(unitSelf, enemy, 857.14)
       local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), pos);
-      if nDistSq < 2000 * 2000 then
+      if nDistSq < 1000 * 1000 then
         if generics.IsFreeLine(unitSelf:GetPosition(), pos, true) then
           target = enemy
           health = enemy:GetHealthPercent()

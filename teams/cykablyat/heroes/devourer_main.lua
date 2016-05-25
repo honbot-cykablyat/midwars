@@ -14,7 +14,7 @@ object.bAttackCommands = true
 object.bAbilityCommands = true
 object.bOtherCommands = true
 
-object.bReportBehavior = true
+object.bReportBehavior = false
 object.bDebugUtility = false
 object.bDebugExecute = false
 
@@ -374,19 +374,11 @@ end
 object.oncombateventOld = object.oncombatevent
 object.oncombatevent = object.oncombateventOverride
 
-local function CustomHarassUtilityOverride(hero)
-  local nUtility = 0
-
-  if skills.hook:CanActivate() then
-    nUtility = nUtility + 10
-  end
-
-  if skills.ulti:CanActivate() then
-    nUtility = nUtility + 40
-  end
-  return nUtility
+function behaviorLib.CustomHarassUtility(unit)
+  local unitSelf = core.unitSelf;
+  local health = unitSelf:GetHealthPercent();
+  return -(1 - health) * 10
 end
-behaviorLib.CustomHarassUtility = CustomHarassUtilityOverride
 
 local hookTarget = nil
 local function hookUtility(botBrain)
@@ -395,29 +387,38 @@ local function hookUtility(botBrain)
     return 0
   end
 
+  local target = nil
+  local distSq = 9999
   for _, unit in pairs(core.localUnits["EnemyHeroes"]) do
     if unit and unit:GetPosition() then
       local location = generics.predict_location(unitSelf, unit, 1600)
       local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), location);
       if nDistSq < skills.hook:GetRange() * skills.hook:GetRange() then
         if generics.IsFreeLine(unitSelf:GetPosition(), location, false) then
-          hookTarget = unit;
-          return 100;
+          if not target or nDistSq < distSq or target:GetHealth() < unit:GetHealth() * 0.5 then
+            target = unit;
+            distSq = nDistSq
+          end
         end
       end
     end
   end
+  if target then
+    hookTarget = target
+    return 100;
+  end
   return 0;
 end
 
+local triedToFind = false
 local function hookExecute(botBrain)
   local unitSelf = core.unitSelf
-
+  triedToFind = false
   if skills.hook:CanActivate() then
     local location = generics.predict_location(unitSelf, hookTarget, 1600);
-    if generics.IsFreeLine(unitSelf:GetPosition(), location, false) then
+    --if generics.IsFreeLine(unitSelf:GetPosition(), location, false) then
       core.OrderAbilityPosition(botBrain, skills.hook, location);
-    end
+    --end
   end
 end
 
@@ -445,46 +446,56 @@ local function findHookPlaceUtility(botBrain)
       if generics.IsFreeLine(unitSelf:GetPosition(), location, false) then
         return 0;
       end
-    elseif nDistSq < range * 1.5 * range * 1.5 then
-      inRange = true
+    elseif triedToFind then
+      if nDistSq < range * 1.5 * range * 1.5 then
+        inRange = true
+      end
+    elseif nDistSq < range * 2 * range * 2 then
+      inRange = true    
     end
   end
   if not inRange then
+    triedToFind = true
     return 0
   end
   return 60;
 end
 
 local function findHookPlaceExecute(botBrain)
+  local enemyTeam = core.teamBotBrain.enemyTeam
+  local allyTeam = core.teamBotBrain.allyTeam
+  if not enemyTeam or not enemyTeam[1] then
+    return
+  end
+  if not allyTeam or not allyTeam[1] then
+    return
+  end
   local unitSelf = core.unitSelf;
-  local oX = unitSelf:GetPosition().x;
-  local oY = unitSelf:GetPosition().y;
-  local cX = core.teamBotBrain.enemyTeam[1].x;
-  local cY = core.teamBotBrain.enemyTeam[1].y;
-  local tX = core.teamBotBrain.allyTeam[1].x
-  local tY = core.teamBotBrain.allyTeam[1].y
+  local o = unitSelf:GetPosition()
+  local c = core.teamBotBrain.enemyTeam[1]
+  local t = core.teamBotBrain.allyTeam[1]
   local d
-  if cY == tY then
-    if oY < tY then
+  if c.y == t.y then
+    if o.y < t.y then
       d = 100
     else
       d = -100
     end
-  elseif oY - tY > ((cX - tX) / (cY - tY)) * (oX - tX) then
+  elseif o.y - t.y > ((c.x - t.x) / (c.y - t.y)) * (o.x - t.x) then
     d = 100
   else 
     d = -100
   end
-  local deltaX = oX - cX;
-  local deltaY = oY - cY;
+  local deltaX = o.x - c.x;
+  local deltaY = o.y - c.y;
   local radius = math.sqrt(deltaX * deltaX + deltaY * deltaY);
   local orthoX = -deltaY * d / radius;
   local orthoY = deltaX * d / radius;
   local newDeltaX = deltaX + orthoX;
   local newDeltaY = deltaY + orthoY;
   local newLength = math.sqrt(newDeltaX * newDeltaX + newDeltaY * newDeltaY);
-  local aX = cX + newDeltaX * radius / newLength;
-  local aY = cY + newDeltaY * radius / newLength;
+  local aX = c.x + newDeltaX * radius / newLength;
+  local aY = c.y + newDeltaY * radius / newLength;
   botBrain:OrderPosition(core.unitSelf.object, "move", Vector3.Create(aX, aY), "none", nil, true)
 end
 
