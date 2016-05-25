@@ -116,6 +116,21 @@ function behaviorLib.CustomHarassUtility(unit)
   return -(1 - health) * 5
 end
 
+-- Custom healAtWell behaviorLib
+
+local healAtWellOldUtility = behaviorLib.HealAtWellBehavior["Utility"]
+
+local function HealAtWellUtilityOverride(botBrain)
+  if core.unitSelf:GetHealthPercent() and core.unitSelf:GetHealthPercent() < 0.15 then
+    return 999
+  end
+  return healAtWellOldUtility(botBrain)
+end
+
+behaviorLib.HealAtWellBehavior["Utility"] = HealAtWellUtilityOverride
+
+-- end healAtWell
+
 local harassOldUtility = behaviorLib.HarassHeroBehavior["Utility"]
 local harassOldExecute = behaviorLib.HarassHeroBehavior["Execute"]
 
@@ -128,12 +143,22 @@ end
 
 local function harassExecuteOverride(botBrain)
   -- local targetHero = behaviorLib.heroTarget
-  local targetHero = core.teamBotBrain:GetTeamTarget()
-  if targetHero == nil or not targetHero:IsValid() then
-    return false --can not execute, move on to the next behavior
-  end
+  -- local targetHero = core.teamBotBrain:GetTeamTarget()
+  -- if targetHero == nil then
+  --   targetHero = core.teamBotBrain:CalculateClosestEnemyToAllyHero(core.unitSelf)
+  -- end
+  -- if targetHero == nil or not targetHero:IsValid() then
+  --   return false --can not execute, move on to the next behavior
+  -- end
+  --
+  -- local unitSelf = core.unitSelf
 
   local unitSelf = core.unitSelf
+  local targetHero = core.teamBotBrain:FindBestEnemyTargetInRange(unitSelf:GetPosition(), 1000)
+  if targetHero == nil then
+    return false
+  end
+  behaviorLib.heroTarget = targetHero
 
   local bActionTaken = false
 
@@ -163,7 +188,7 @@ local function throwSpearUtility(botBrain)
     if nDistSq < 2000 * 2000 then
       if generics.IsFreeLine(unitSelf:GetPosition(), pos, true) then
         stunTarget = target
-        return 50   
+        return 50
       end
     end
   end

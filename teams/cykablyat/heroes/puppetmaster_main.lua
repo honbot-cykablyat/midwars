@@ -111,6 +111,21 @@ object.onthink = object.onthinkOverride
 
 tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
 
+-- Custom healAtWell behaviorLib
+
+local healAtWellOldUtility = behaviorLib.HealAtWellBehavior["Utility"]
+
+local function HealAtWellUtilityOverride(botBrain)
+  if core.unitSelf:GetHealthPercent() and core.unitSelf:GetHealthPercent() < 0.15 then
+    return 999
+  end
+  return healAtWellOldUtility(botBrain)
+end
+
+behaviorLib.HealAtWellBehavior["Utility"] = HealAtWellUtilityOverride
+
+-- end healAtWell
+
 -- Custom harass behaviour
 
 local harassOldUtility = behaviorLib.HarassHeroBehavior["Utility"]
@@ -125,12 +140,20 @@ end
 
 local function harassExecuteOverride(botBrain)
   -- local targetHero = behaviorLib.targetHero
-  local targetHero = core.teamBotBrain:GetTeamTarget()
-  if targetHero == nil or not targetHero:IsValid() then
-    return false --can not execute, move on to the next behavior
-  end
+  -- local targetHero = core.teamBotBrain:GetTeamTarget()
+  -- if targetHero == nil or not targetHero:IsValid() then
+  --   return false --can not execute, move on to the next behavior
+  -- end
+  --
+  -- local unitSelf = core.unitSelf
 
   local unitSelf = core.unitSelf
+  local targetHero = core.teamBotBrain:FindBestEnemyTargetInRange(unitSelf:GetPosition(), 1000)
+  if targetHero == nil then
+    return false
+  end
+  behaviorLib.heroTarget = targetHero
+
   local bActionTaken = false
 
   if core.CanSeeUnit(botBrain, targetHero) then
@@ -167,6 +190,25 @@ end
 
 behaviorLib.HarassHeroBehavior["Utility"] = harassUtilityOverride
 behaviorLib.HarassHeroBehavior["Execute"] = harassExecuteOverride
+
+-- custom kill enemy hero behavior
+
+function KillEnemyHeroUtility(botBrain)
+  if core.teamBotBrain.GetState and core.teamBotBrain:GetState() == "LANE_AGGRESSIVELY" then
+    local targetHero = core.teamBotBrain:GetTeamTarget()
+    if targetHero == nil or not targetHero:IsValid() then
+      return false --can not execute, move on to the next behavior
+    end
+    return 100
+  end
+end
+
+function KillEnemyHeroExecute(botBrain)
+  local healPos = core.teamBotBrain.healPosition
+  if healPos then
+  	botBrain:OrderPosition(core.unitSelf.object, "move", healPos, "none", nil, true)
+	end
+end
 
 -- ComboWombo behaviour
 

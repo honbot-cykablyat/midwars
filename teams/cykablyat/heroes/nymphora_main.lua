@@ -127,6 +127,21 @@ end
 object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride
 
+-- Custom healAtWell behaviorLib
+
+local healAtWellOldUtility = behaviorLib.HealAtWellBehavior["Utility"]
+
+local function HealAtWellUtilityOverride(botBrain)
+  if core.unitSelf:GetHealthPercent() and core.unitSelf:GetHealthPercent() < 0.15 then
+    return 999
+  end
+  return healAtWellOldUtility(botBrain)
+end
+
+behaviorLib.HealAtWellBehavior["Utility"] = HealAtWellUtilityOverride
+
+-- end healAtWell
+
 local harassOldUtility = behaviorLib.HarassHeroBehavior["Utility"]
 local harassOldExecute = behaviorLib.HarassHeroBehavior["Execute"]
 
@@ -139,12 +154,23 @@ end
 
 local function harassExecuteOverride(botBrain)
   -- local targetHero = behaviorLib.heroTarget
-  local targetHero = core.teamBotBrain:GetTeamTarget()
-  if targetHero == nil or not targetHero:IsValid() then
-    return false --can not execute, move on to the next behavior
-  end
+  -- local targetHero = core.teamBotBrain:GetTeamTarget()
+  -- if targetHero == nil then
+  --   targetHero = core.teamBotBrain:CalculateClosestEnemyToAllyHero(core.unitSelf)
+  -- end
+  -- if targetHero == nil or not targetHero:IsValid() then
+  --   return false --can not execute, move on to the next behavior
+  -- end
+  --
+  -- local unitSelf = core.unitSelf
 
   local unitSelf = core.unitSelf
+  local targetHero = core.teamBotBrain:FindBestEnemyTargetInRange(unitSelf:GetPosition(), 1000)
+  if targetHero == nil then
+    return false
+  end
+  behaviorLib.heroTarget = targetHero
+
   local nTargetDistanceSq = Vector3.Distance2DSq(unitSelf:GetPosition(), targetHero:GetPosition())
 
   local bActionTaken = false
@@ -168,6 +194,23 @@ end
 
 behaviorLib.HarassHeroBehavior["Utility"] = harassUtilityOverride
 behaviorLib.HarassHeroBehavior["Execute"] = harassExecuteOverride
+
+-- custom retreat behavior
+
+-- local function TeamRetreatUtility(botBrain)
+--   if core.teamBotBrain:GetState and core.teamBotBrain:GetState() == "TEAM_RETREAT" then
+--     return 100
+--   end
+-- end
+--
+-- local function TeamRetreatExecute(botBrain)
+--   if stunTarget and skills.stun:CanActivate() then
+--     local pos = generics.predict_location(core.unitSelf, stunTarget, 1000)
+--     core.OrderAbilityPosition(botBrain, skills.stun, pos);
+--   end
+-- end
+
+-- end custom retreat
 
 local stunTarget = nil
 local function StunUtility(botBrain)

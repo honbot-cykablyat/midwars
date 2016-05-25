@@ -155,6 +155,21 @@ end
 object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride
 
+-- Custom healAtWell behaviorLib
+
+local healAtWellOldUtility = behaviorLib.HealAtWellBehavior["Utility"]
+
+local function HealAtWellUtilityOverride(botBrain)
+  if core.unitSelf:GetHealthPercent() and core.unitSelf:GetHealthPercent() < 0.15 then
+    return 999
+  end
+  return healAtWellOldUtility(botBrain)
+end
+
+behaviorLib.HealAtWellBehavior["Utility"] = HealAtWellUtilityOverride
+
+-- end healAtWell
+
 -- Custom harass behaviour
 
 local harassOldUtility = behaviorLib.HarassHeroBehavior["Utility"]
@@ -168,12 +183,32 @@ local function harassUtilityOverride(botBrain)
 end
 
 local function harassExecuteOverride(botBrain)
-  local unitTarget = core.teamBotBrain:GetTeamTarget()
-  if unitTarget == nil or not unitTarget:IsValid() then
-    return false --can not execute, move on to the next behavior
-  end
+  -- moves the hero to enemy teams position
+  -- local enemyTeamPos = core.teamBotBrain:GetEnemyTeamPosition()
+  -- if enemyTeamPos and core.teamBotBrain:GetState() == "LANE_AGGRESSIVELY" then
+  --   BotEcho("ordering devourer attack!")
+  --   -- BotEcho("enemy team pos : " .. enemyTeamPos.y)
+  --   -- core.OrderPosition()
+  --   -- core.OrderPosition(botBrain, core.unitSelf, "move", enemyTeamPos)
+  --   -- botBrain:OrderPosition(core.unitSelf, "move", enemyTeamPos)
+  --   -- core.OrderPosition(botBrain, core.unitSelf, "move", core.unitSelf:GetPosition(), "none", nil, true)
+  --   botBrain:OrderPosition(core.unitSelf.object, "move", enemyTeamPos)
+  -- end
+
+  -- local targetHero = core.teamBotBrain:GetTeamTarget()
+  -- if targetHero == nil then
+  --   targetHero = core.teamBotBrain:CalculateClosestEnemyToAllyHero(core.unitSelf)
+  -- end
+  -- if targetHero == nil or not targetHero:IsValid() then
+  --   return false --can not execute, move on to the next behavior
+  -- end
 
   local unitSelf = core.unitSelf
+  local targetHero = core.teamBotBrain:FindBestEnemyTargetInRange(unitSelf:GetPosition(), 800)
+  if targetHero == nil then
+    return false
+  end
+  behaviorLib.heroTarget = targetHero
 
   if unitSelf:IsChanneling() then
     return
@@ -182,22 +217,22 @@ local function harassExecuteOverride(botBrain)
   local bActionTaken = false
 
   --since we are using an old pointer, ensure we can still see the target for entity targeting
-  if core.CanSeeUnit(botBrain, unitTarget) then
-    local dist = Vector3.Distance2D(unitSelf:GetPosition(), unitTarget:GetPosition())
-    local attkRange = core.GetAbsoluteAttackRangeToUnit(unitSelf, unitTarget);
+  if core.CanSeeUnit(botBrain, targetHero) then
+    local dist = Vector3.Distance2D(unitSelf:GetPosition(), targetHero:GetPosition())
+    local attkRange = core.GetAbsoluteAttackRangeToUnit(unitSelf, targetHero);
 
     local itemGhostMarchers = core.itemGhostMarchers
 
     local ulti = skills.ulti
-    local ultiRange = ulti and (ulti:GetRange() + core.GetExtraRange(unitSelf) + core.GetExtraRange(unitTarget)) or 0
+    local ultiRange = ulti and (ulti:GetRange() + core.GetExtraRange(unitSelf) + core.GetExtraRange(targetHero)) or 0
 
     local bUseUlti = true
 
     if ulti and ulti:CanActivate() and bUseUlti and dist < ultiRange then
-      bActionTaken = core.OrderAbilityEntity(botBrain, ulti, unitTarget)
+      bActionTaken = core.OrderAbilityEntity(botBrain, ulti, targetHero)
     elseif (ulti and ulti:CanActivate() and bUseUlti and dist > ultiRange) then
       --move in when we want to ult
-      local desiredPos = unitTarget:GetPosition()
+      local desiredPos = targetHero:GetPosition()
 
       if itemPK and itemPK:CanActivate() then
         bActionTaken = core.OrderItemPosition(botBrain, unitSelf, itemPK, desiredPos)
@@ -472,7 +507,7 @@ local function findHookPlaceExecute(botBrain)
     end
   elseif oY - tY > ((cX - tX) / (cY - tY)) * (oX - tX) then
     d = 100
-  else 
+  else
     d = -100
   end
   local deltaX = oX - cX;
