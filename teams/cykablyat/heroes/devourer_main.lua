@@ -416,9 +416,8 @@ local function hookExecute(botBrain)
   triedToFind = false
   if skills.hook:CanActivate() then
     local location = generics.predict_location(unitSelf, hookTarget, 1600);
-    --if generics.IsFreeLine(unitSelf:GetPosition(), location, false) then
-      core.OrderAbilityPosition(botBrain, skills.hook, location);
-    --end
+    core.OrderAbilityPosition(botBrain, skills.hook, location);
+    core.teamBotBrain:SetTeamTarget(hookTarget)
   end
 end
 

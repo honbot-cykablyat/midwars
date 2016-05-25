@@ -91,18 +91,18 @@ object.attack_priority = {"Hero_Fairy", "Hero_PuppetMaster", "Hero_Valkyrie", "H
 
 object.healPosition = nil
 
-local teamTarget = nil
+object.teamTarget = nil
 
 function object:GetTeamTarget()
-  if teamTarget then
-    --core.BotEcho(teamTarget:GetTypeName())
-    return self:GetMemoryUnit(teamTarget)
+  if object.teamTarget then
+    --core.BotEcho(object.teamTarget:GetTypeName())
+    return self:GetMemoryUnit(object.teamTarget)
   end
   return nil
 end
 
 function object:SetTeamTarget(target)
-  teamTarget = target
+  object.teamTarget = target
 end
 
 function object:GroupAndPushLogic()
@@ -112,8 +112,8 @@ end
 -- Checks for nearest and lowest hp enemy hero
 local function FindBestEnemyTargetInRange(position, range)
   local bestTarget = nil
-  if teamTarget then
-    bestTarget = object:GetMemoryUnit(teamTarget)
+  if object.teamTarget then
+    bestTarget = object:GetMemoryUnit(object.teamTarget)
     if bestTarget and Vector3.Distance2D(position, bestTarget:GetPosition()) > range then
       bestTarget = nil
     end
@@ -152,7 +152,7 @@ function object:onthinkOverride(tGameVariables)
   EvaluateTeamMapPosition()
   --core.BotEcho(state)
   if object.allyTeam[1] then
-    teamTarget = FindBestEnemyTargetInRange(object.allyTeam[1], 500)
+    object.teamTarget = FindBestEnemyTargetInRange(object.allyTeam[1], 500)
   end
 end
 object.onthinkOld = object.onthink
