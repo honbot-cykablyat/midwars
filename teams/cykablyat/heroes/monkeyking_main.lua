@@ -72,6 +72,7 @@ tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
 tinsert(behaviorLib.tBehaviors, generics.GroupBehavior)
 tinsert(behaviorLib.tBehaviors, generics.DodgeBehavior)
 tinsert(behaviorLib.tBehaviors, generics.RallyTeamBehavior)
+tinsert(behaviorLib.tBehaviors, generics.HitBuildingBehavior)
 
 behaviorLib.StartingItems =
   {"Item_LoggersHatchet", "Item_ManaPotion", "Item_MinorTotem", "Item_RunesOfTheBlight"}
