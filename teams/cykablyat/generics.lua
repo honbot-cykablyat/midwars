@@ -28,7 +28,7 @@ end
 function takeHealExecute(botBrain)
   local healPos = core.teamBotBrain.healPosition
   if healPos then
-    botBrain:OrderPosition(core.unitSelf.object, "attack", healPos, "none", nil, true)
+    botBrain:OrderPosition(core.unitSelf.object, "move", healPos, "none", nil, true)
   end
 end
 
@@ -53,12 +53,12 @@ function groupExecute(botBrain)
   local allyTower = core.GetClosestAllyTower(enemyBasePos)
   local allyTowerPos = allyTower:GetPosition()
   if Vector3.Distance2D(unitSelf, allyTowerPos) < 1000 then
-    botBrain:OrderPosition(unitSelf.object, "attack", allyTowerPos, "none", nil, false)
+    botBrain:OrderPosition(unitSelf.object, "move", allyTowerPos, "none", nil, false)
   end
   local allyTeam = core.teamBotBrain:GetAllyTeam(unitSelf:GetPosition(), 1000);
   allyTeam = HoN.GetGroupCenter(allyTeam);
   if allyTeam then
-    botBrain:OrderPosition(unitSelf.object, "attack", allyTeam, "none", nil, false)
+    botBrain:OrderPosition(unitSelf.object, "move", allyTeam, "none", nil, false)
   end
 end
 
@@ -66,6 +66,94 @@ generics.GroupBehavior = {}
 generics.GroupBehavior["Utility"] = groupUtility
 generics.GroupBehavior["Execute"] = groupExecute
 generics.GroupBehavior["Name"] = "Group"
+
+local function findProjectile(botBrain)
+  local unitSelf = core.unitSelf
+  local pos = unitSelf:GetPosition()
+  local units = HoN.GetUnitsInRadius(pos, 750, core.UNIT_MASK_ALIVE + core.UNIT_MASK_GADGET)
+  for _, unit in pairs(units) do
+    if unit:GetTypeName() == "Gadget_Valkyrie_Ability2_Reveal" and unit:GetTeam() ~= core.myTeam then
+      local arrowPos = unit:GetPosition()
+      local heading = unit:GetHeading()
+      if intersects({arrowPos, heading * 750}, {Vector3.Create(pos.x - 3, pos.y - 3, 0), Vector3.Create(pos.x + 3, pos.y + 3, 0)}) then
+        return {arrowPos, heading}
+      end
+    end
+  end
+  for _, hero in pairs(core.teamBotBrain.tEnemyHeroes) do
+    if hero:GetTypeName() == "Hero_Devourer" then
+      local beha = hero:GetBehavior()
+      if beha and beha:GetType() == "Ability" and not beha:GetTarget() then
+        local goalPos = beha:GetGoalPosition()
+        if goalPos then
+          local pos = hero:GetPosition()
+          return {pos, Vector3.Create(pos.x - goalPos.x, pos.y - goalPos.y, 0)}
+        end
+      end
+    end
+    if hero:GetTypeName() == "Hero_Fairy" then
+      local beha = hero:GetBehavior()
+      if beha and beha:GetType() == "Ability" and not beha:GetTarget() then
+        local goalPos = beha:GetGoalPosition()
+        if goalPos then
+          local pos = hero:GetPosition()
+          return {pos, Vector3.Create(pos.x - goalPos.x, pos.y - goalPos.y, 0)}
+        end
+      end
+    end
+  end
+end
+
+function intersects(ray, box)
+   local tmin, tmax = -99999, 99999
+    if not ray[2].x == 0 then
+        local tx1 = (box[1].x - ray[1].x) / ray[2].x;
+        local tx2 = (box[2].x - ray[1].x) / ray[2].x;
+        tmin = math.max(tmin, math.min(tx1, tx2));
+        tmax = math.min(tmax, math.max(tx1, tx2));
+    end
+    if not ray[2].y == 0.0 then
+        local ty1 = (box[1].y - ray[1].y) / ray[2].y;
+        local ty2 = (box[2].y - ray[1].y) / ray[2].y;
+        tmin = math.max(tmin, math.min(ty1, ty2));
+        tmax = math.min(tmax, math.max(ty1, ty2));
+    end
+    return tmax >= tmin;
+end
+
+function dodgeUtility(botBrain)
+  local position = findProjectile(botBrain)
+  if position then
+    return 200
+  end
+  return 0
+end
+
+function dodgeExecute(botBrain)
+  local unitSelf = core.unitSelf
+  local pos = unitSelf:GetPosition()
+  local position = findProjectile(botBrain)
+  if position then
+    local x, y
+    local between = Vector3.Create(position[1].x - pos.x, position[1].y - pos.y, 0)
+    local perpen = Vector3.Create(position[2].y, -position[2].x, 0);
+    if Vector3.Dot(perpen, between) > 0 then
+      x = pos.x - 50 * position[2].y
+      y = pos.y + 50 * position[2].x
+    else
+      x = pos.x + 50 * position[2].y
+      y = pos.y - 50 * position[2].x
+    end
+    local dir = Vector3.Create(x, y, 0)
+    botBrain:OrderPosition(core.unitSelf.object, "move", dir, "none", nil, true)
+  end
+end
+
+generics.DodgeBehavior = {}
+generics.DodgeBehavior["Utility"] = dodgeUtility
+generics.DodgeBehavior["Execute"] = dodgeExecute
+generics.DodgeBehavior["Name"] = "Dodge"
+
 
 function generics.predict_location(unit, enemy, projectileSpeed)
   local enemyHeading = enemy:GetHeading()

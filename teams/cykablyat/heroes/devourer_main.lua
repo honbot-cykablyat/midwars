@@ -72,6 +72,7 @@ tinsert(behaviorLib.tBehaviors, behaviorLib.StashBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.HarassHeroBehavior)
 tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
 tinsert(behaviorLib.tBehaviors, generics.GroupBehavior)
+tinsert(behaviorLib.tBehaviors, generics.DodgeBehavior)
 
 local bSkillsValid = false
 function object:SkillBuild()
@@ -134,14 +135,6 @@ end
 
 function object:onthinkOverride(tGameVariables)
   self:onthinkOld(tGameVariables)
-
-  local tEnemies = core.CopyTable(core.localUnits["EnemyHeroes"])
-  for _, enemy in pairs(tEnemies) do
-    local state = enemy:HasState("State_Devourer_Ability1")
-    if state then
-      BotEcho("DevoHook Detected!!!")
-    end
-  end
 
   if HasEnemiesInRange(core.unitSelf, 250) then
     if not core.unitSelf:HasState("State_Devourer_Ability2_Self") then

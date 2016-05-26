@@ -69,6 +69,7 @@ tinsert(behaviorLib.tBehaviors, behaviorLib.ShopBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.StashBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.HarassHeroBehavior)
 tinsert(behaviorLib.tBehaviors, generics.GroupBehavior)
+tinsert(behaviorLib.tBehaviors, generics.DodgeBehavior)
 
 behaviorLib.StartingItems =
   {"Item_CrushingClaws", "Item_GuardianRing", "Item_ManaBattery", "Item_MinorTotem"}
@@ -135,7 +136,7 @@ local healAtWellOldUtility = behaviorLib.HealAtWellBehavior["Utility"]
 
 local function HealAtWellUtilityOverride(botBrain)
   if core.unitSelf:GetHealthPercent() and core.unitSelf:GetHealthPercent() < 0.15 then
-    return 999
+    return 100
   end
   return healAtWellOldUtility(botBrain)
 end
