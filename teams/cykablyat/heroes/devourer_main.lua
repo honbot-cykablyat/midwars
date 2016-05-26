@@ -133,15 +133,7 @@ end
 
 function object:onthinkOverride(tGameVariables)
   self:onthinkOld(tGameVariables)
-
-  local tEnemies = core.CopyTable(core.localUnits["EnemyHeroes"])
-  for _, enemy in pairs(tEnemies) do
-    local state = enemy:HasState("State_Devourer_Ability1")
-    if state then
-      BotEcho("DevoHook Detected!!!")
-    end
-  end
-
+  
   if HasEnemiesInRange(core.unitSelf, 250) then
     if not core.unitSelf:HasState("State_Devourer_Ability2_Self") then
       object:OrderAbility(skills.fart)
@@ -450,7 +442,7 @@ local function findHookPlaceUtility(botBrain)
         inRange = true
       end
     elseif nDistSq < range * 2 * range * 2 then
-      inRange = true    
+      inRange = true
     end
   end
   if not inRange then
@@ -482,7 +474,7 @@ local function findHookPlaceExecute(botBrain)
     end
   elseif o.y - t.y > ((c.x - t.x) / (c.y - t.y)) * (o.x - t.x) then
     d = 100
-  else 
+  else
     d = -100
   end
   local deltaX = o.x - c.x;
