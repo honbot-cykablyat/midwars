@@ -153,6 +153,19 @@ function behaviorLib.CustomHealAtWellExecute(botBrain)
 end
 -- end healAtWell
 
+-- Custom HitBuildingUtility
+
+local oldHitBuildingUtility = behaviorLib.HitBuildingBehavior["Utility"]
+
+local function NewHitBuildingUtility(botBrain)
+  local addToUtil = 0
+  local scaleOldUtil = 2
+  return scaleOldUtil*(oldHitBuildingUtility(botBrain)) + addToUtil
+end
+
+behaviorLib.HitBuildingBehavior["Utility"] = NewHitBuildingUtility
+-- end HitBuilding
+
 local harassOldUtility = behaviorLib.HarassHeroBehavior["Utility"]
 local harassOldExecute = behaviorLib.HarassHeroBehavior["Execute"]
 
