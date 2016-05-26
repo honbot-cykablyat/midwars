@@ -70,6 +70,7 @@ tinsert(behaviorLib.tBehaviors, behaviorLib.ShopBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.StashBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.HarassHeroBehavior)
 tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
+tinsert(behaviorLib.tBehaviors, generics.GroupBehavior)
 
 local bSkillsValid = false
 function object:SkillBuild()
@@ -157,7 +158,7 @@ local function harassExecuteOverride(botBrain)
   end
   behaviorLib.heroTarget = targetHero
 
-  core.DrawXPosition(targetHero:GetPosition(), "red", 400)
+  --core.DrawXPosition(targetHero:GetPosition(), "red", 400)
 
   local bActionTaken = false
 
@@ -180,17 +181,7 @@ local function throwSpearUtility(botBrain)
   if not skills.javelin:CanActivate() then
     return 0
   end
-  local target = generics.FindBestEnemyTargetInRange(800)
-  if target and target:IsHero() then
-    local pos = generics.predict_location(unitSelf, target, 857.14)
-    local nDistSq = Vector3.Distance2DSq(unitSelf:GetPosition(), pos);
-    if nDistSq < 1000 * 1000 then
-      if generics.IsFreeLine(unitSelf:GetPosition(), pos, true) then
-        stunTarget = target
-        return 50
-      end
-    end
-  end
+  local target = nil
   local health = 1
   for _, enemy in pairs(core.localUnits["EnemyHeroes"]) do
     if enemy:GetHealthPercent() < health then

@@ -68,6 +68,7 @@ tinsert(behaviorLib.tBehaviors, behaviorLib.PreGameBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.ShopBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.StashBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.HarassHeroBehavior)
+tinsert(behaviorLib.tBehaviors, generics.GroupBehavior)
 
 behaviorLib.StartingItems =
   {"Item_CrushingClaws", "Item_GuardianRing", "Item_ManaBattery", "Item_MinorTotem"}
@@ -169,7 +170,7 @@ local function harassExecuteOverride(botBrain)
   end
   behaviorLib.heroTarget = targetHero
 
-  core.DrawXPosition(targetHero:GetPosition(), "red", 400)
+  --core.DrawXPosition(targetHero:GetPosition(), "red", 400)
 
   local nTargetDistanceSq = Vector3.Distance2DSq(unitSelf:GetPosition(), targetHero:GetPosition())
 
@@ -234,7 +235,7 @@ local function StunUtility(botBrain)
   for _, enemy in pairs(core.localUnits["EnemyHeroes"]) do
     local pos = generics.predict_location(core.unitSelf, enemy, 1000);
     local nDistSq = Vector3.Distance2DSq(core.unitSelf:GetPosition(), pos);
-    local range = skills.stun:GetRange() * 1.33
+    local range = skills.stun:GetRange()
     if nDistSq < range * range then
       if enemy:GetHealthPercent() < health then
         target = enemy
@@ -252,7 +253,9 @@ end
 local function StunExecute(botBrain)
   if stunTarget and skills.stun:CanActivate() then
     local pos = generics.predict_location(core.unitSelf, stunTarget, 700)
-    core.OrderAbilityPosition(botBrain, skills.stun, pos);
+    if pos then
+      core.OrderAbilityPosition(botBrain, skills.stun, pos);
+    end
   end
 end
 
@@ -286,7 +289,9 @@ local function HealExecute(botBrain)
   if skills.heal:CanActivate() then
     local pos = generics.predict_location(core.unitSelf, healTarget, 1000)
     core.teamBotBrain.healPosition = pos;
-    core.OrderAbilityPosition(botBrain, skills.heal, pos);
+    if pos then
+      core.OrderAbilityPosition(botBrain, skills.heal, pos);
+    end
   end
 end
 

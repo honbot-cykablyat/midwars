@@ -28,8 +28,8 @@ end
 function takeHealExecute(botBrain)
   local healPos = core.teamBotBrain.healPosition
   if healPos then
-  	botBrain:OrderPosition(core.unitSelf.object, "move", healPos, "none", nil, true)
-	end
+    botBrain:OrderPosition(core.unitSelf.object, "attack", healPos, "none", nil, true)
+  end
 end
 
 generics.TakeHealBehavior = {}
@@ -37,14 +37,44 @@ generics.TakeHealBehavior["Utility"] = takeHealUtility
 generics.TakeHealBehavior["Execute"] = takeHealExecute
 generics.TakeHealBehavior["Name"] = "TakeHeal"
 
+function groupUtility(botBrain)
+  local allyTeam = core.teamBotBrain.allyTeam
+  if allyTeam and allyTeam[1] then
+    if core.teamBotBrain:AnalyzeAllyHeroPosition(core.unitSelf) == "GROUP" then
+      return 25
+    end
+  end
+  return 0
+end
+
+function groupExecute(botBrain)
+  local unitSelf = core.unitSelf
+  local enemyBasePos = core.enemyMainBaseStructure:GetPosition()
+  local allyTower = core.GetClosestAllyTower(enemyBasePos)
+  local allyTowerPos = allyTower:GetPosition()
+  if Vector3.Distance2D(unitSelf, allyTowerPos) < 1000 then
+    botBrain:OrderPosition(unitSelf.object, "attack", allyTowerPos, "none", nil, false)
+  end
+  local allyTeam = core.teamBotBrain:GetAllyTeam(unitSelf:GetPosition(), 1000);
+  allyTeam = HoN.GetGroupCenter(allyTeam);
+  if allyTeam then
+    botBrain:OrderPosition(unitSelf.object, "attack", allyTeam, "none", nil, false)
+  end
+end
+
+generics.GroupBehavior = {}
+generics.GroupBehavior["Utility"] = groupUtility
+generics.GroupBehavior["Execute"] = groupExecute
+generics.GroupBehavior["Name"] = "Group"
+
 function generics.predict_location(unit, enemy, projectileSpeed)
   local enemyHeading = enemy:GetHeading()
   local selfPos = unit:GetPosition()
   local enemyPos = enemy:GetPosition()
   local enemySpeed = enemy:GetMoveSpeed()
-	if not enemyHeading then
-		return enemyPos
-	end
+  if not enemyHeading then
+    return enemyPos
+  end
   local enemyMovement = enemySpeed * enemyHeading;
 
   local startPos = enemyPos;

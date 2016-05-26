@@ -112,6 +112,7 @@ object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride
 
 tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
+tinsert(behaviorLib.tBehaviors, generics.GroupBehavior)
 
 -- Custom healAtWell behaviorLib
 
@@ -195,7 +196,7 @@ local function harassExecuteOverride(botBrain)
   end
   behaviorLib.heroTarget = targetHero
 
-  core.DrawXPosition(targetHero:GetPosition(), "red", 400)
+  --core.DrawXPosition(targetHero:GetPosition(), "red", 400)
 
   local bActionTaken = false
 

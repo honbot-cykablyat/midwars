@@ -69,6 +69,7 @@ tinsert(behaviorLib.tBehaviors, behaviorLib.PreGameBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.ShopBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.StashBehavior)
 tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
+tinsert(behaviorLib.tBehaviors, generics.GroupBehavior)
 
 behaviorLib.StartingItems =
   {"Item_LoggersHatchet", "Item_ManaPotion", "Item_MinorTotem", "Item_RunesOfTheBlight"}
@@ -283,7 +284,7 @@ local function harassExecuteOverride(botBrain)
   end
   behaviorLib.heroTarget = targetHero
 
-  core.DrawXPosition(targetHero:GetPosition(), "red", 400)
+  --core.DrawXPosition(targetHero:GetPosition(), "red", 400)
 
   local bActionTaken = false
 

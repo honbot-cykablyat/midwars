@@ -71,6 +71,7 @@ tinsert(behaviorLib.tBehaviors, behaviorLib.ShopBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.StashBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.HarassHeroBehavior)
 tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
+tinsert(behaviorLib.tBehaviors, generics.GroupBehavior)
 
 local bSkillsValid = false
 function object:SkillBuild()
@@ -198,7 +199,7 @@ local function harassExecuteOverride(botBrain)
   end
   behaviorLib.heroTarget = targetHero
 
-  core.DrawXPosition(targetHero:GetPosition(), "red", 400)
+  --core.DrawXPosition(targetHero:GetPosition(), "red", 400)
 
   if unitSelf:IsChanneling() then
     return
@@ -482,9 +483,6 @@ local function findHookPlaceUtility(botBrain)
   if not skills.hook:CanActivate() then
     return 0
   end
-  -- if not core.teamBotBrain.enemyTeam or not core.teamBotBrain.allyTeam then
-  --   return 0
-  -- end
   local inRange = false
   for _, unit in pairs(core.localUnits["EnemyHeroes"]) do
     local location = generics.predict_location(unitSelf, unit, 1600)
@@ -510,18 +508,15 @@ local function findHookPlaceUtility(botBrain)
 end
 
 local function findHookPlaceExecute(botBrain)
-  local enemyTeam = core.teamBotBrain:GetEnemyTeam()
-  local allyTeam = core.teamBotBrain:GetAllyTeam()
-  if not enemyTeam or not enemyTeam[1] then
-    return
-  end
-  if not allyTeam or not allyTeam[1] then
-    return
-  end
   local unitSelf = core.unitSelf;
   local o = unitSelf:GetPosition()
+  local enemyTeam = core.teamBotBrain:GetEnemyTeam(o, skills.hook:GetRange() * 2)
+  local allyTeam = core.teamBotBrain:GetAllyTeam(o, skills.hook:GetRange())
   local c = HoN.GetGroupCenter(enemyTeam)
   local t = HoN.GetGroupCenter(allyTeam)
+  if not c or not t then
+    return
+  end
   local d
   if c.y == t.y then
     if o.y < t.y then
