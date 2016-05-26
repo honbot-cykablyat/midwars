@@ -18,6 +18,9 @@ object.attack_priority = {"Hero_Fairy", "Hero_PuppetMaster", "Hero_Valkyrie", "H
 
 object.healPosition = nil
 
+object.teamStatus = {}
+object.teamHeroStatuses = nil
+object.teamRallyPoint = nil
 object.teamTarget = nil
 
 function object:GetAllyTeam(position, range)
@@ -42,6 +45,45 @@ function object:GetEnemyTeam(position, range)
     end
   end
   return team
+end
+
+function object:GetTeamStatus()
+  return object.teamStatus
+end
+
+function CreateRallyPoint()
+  local enemyBasePos = core.enemyMainBaseStructure:GetPosition()
+  local allyTower = core.GetClosestAllyTower(enemyBasePos)
+  object.teamRallyPoint = allyTower:GetPosition()
+end
+
+function object:UpdateTeamStatus()
+  local allyTeam = object:GetAllyTeam()
+  local enemyTeam = object:GetEnemyTeam()
+  local healing = 0
+  local rallying = 0
+  for _, status in pairs(object.teamHeroStatuses) do
+    if status == "HEALING" then
+      healing = healing + 1
+    elseif status == "RALLYING" then
+      rallying = rallying + 1
+    end
+  end
+  if healing > 2 and table.getn(enemyTeam) > table.getn(allyTeam) then
+    object.teamStatus = "RALLY_TEAM"
+    CreateRallyPoint()
+  elseif rallying == 5 then
+    object.teamStatus = ""
+    object.teamRallyPoint = ""
+  elseif object.teamStatus == "RALLY_TEAM" then
+  else
+    object.teamStatus = ""
+  end
+end
+
+function object:UpdateHeroStatus(hero, status)
+  object.teamHeroStatuses[hero:GetUniqueID()] = status
+  object.UpdateTeamStatus()
 end
 
 -- function object:GetTeamTarget()

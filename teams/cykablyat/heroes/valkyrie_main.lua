@@ -107,6 +107,20 @@ function object:SkillBuild()
   end
 end
 
+------------------------------------------------------
+--            onthink override                      --
+-- Called every bot tick, custom onthink code here  --
+------------------------------------------------------
+-- @param: tGameVariables
+-- @return: none
+function object:onthinkOverride(tGameVariables)
+  self:onthinkOld(tGameVariables)
+  -- custom code here
+  generics.AnalyzeAllyHeroPosition(core.unitSelf)
+end
+object.onthinkOld = object.onthink
+object.onthink = object.onthinkOverride
+
 function sign(x)
   return (x<0 and -1) or 1
 end
@@ -130,6 +144,9 @@ end
 
 behaviorLib.HealAtWellBehavior["Utility"] = HealAtWellUtilityOverride
 
+function behaviorLib.CustomHealAtWellExecute(botBrain)
+	return false
+end
 -- end healAtWell
 
 local harassOldUtility = behaviorLib.HarassHeroBehavior["Utility"]
@@ -138,12 +155,14 @@ local harassOldExecute = behaviorLib.HarassHeroBehavior["Execute"]
 local function harassUtilityOverride(botBrain)
   local old = harassOldUtility(botBrain)
   local hpPc = core.unitSelf:GetHealthPercent()
-  local state = generics.AnalyzeAllyHeroPosition(core.unitSelf)
+  local state = generics.positionStatus
   BotEcho("state is " .. state .. " old " .. old)
   if state == "ATTACK" and hpPc > 0.15 then
-    return old + 80
+    return 99
+    -- return old + 80
   elseif state == "HARASS" and hpPc > 0.15 then
-    return old + 40
+    return old + 20
+    -- return old + 40
   else
     return old
   end
@@ -215,20 +234,6 @@ JavelinBehavior["Utility"] = throwSpearUtility
 JavelinBehavior["Execute"] = throwSpearExecute
 JavelinBehavior["Name"] = "Javelin"
 tinsert(behaviorLib.tBehaviors, JavelinBehavior)
-
-------------------------------------------------------
---            onthink override                      --
--- Called every bot tick, custom onthink code here  --
-------------------------------------------------------
--- @param: tGameVariables
--- @return: none
-function object:onthinkOverride(tGameVariables)
-  self:onthinkOld(tGameVariables)
-
-  -- custom code here
-end
-object.onthinkOld = object.onthink
-object.onthink = object.onthinkOverride
 
 -- custom destroy building behavior
 

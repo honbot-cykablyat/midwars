@@ -123,8 +123,8 @@ end
 -- @return: none
 function object:onthinkOverride(tGameVariables)
   self:onthinkOld(tGameVariables)
-
   -- custom code here
+  generics.AnalyzeAllyHeroPosition(core.unitSelf)
 end
 object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride
@@ -150,12 +150,14 @@ local harassOldExecute = behaviorLib.HarassHeroBehavior["Execute"]
 local function harassUtilityOverride(botBrain)
   local old = harassOldUtility(botBrain)
   local hpPc = core.unitSelf:GetHealthPercent()
-  local state = generics.AnalyzeAllyHeroPosition(core.unitSelf)
+  local state = generics.positionStatus
   BotEcho("state is " .. state .. " old " .. old)
   if state == "ATTACK" and hpPc > 0.15 then
-    return old + 80
+    return 99
+    -- return old + 80
   elseif state == "HARASS" and hpPc > 0.15 then
-    return old + 40
+    return old + 20
+    -- return old + 40
   else
     return old
   end

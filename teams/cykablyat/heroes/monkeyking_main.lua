@@ -14,9 +14,9 @@ object.bAttackCommands = true
 object.bAbilityCommands = true
 object.bOtherCommands = true
 
-object.bReportBehavior = false
-object.bDebugUtility = false
-object.bDebugExecute = false
+object.bReportBehavior = true
+object.bDebugUtility = true
+object.bDebugExecute = true
 
 object.logger = {}
 object.logger.bWriteLog = false
@@ -237,8 +237,8 @@ tinsert(behaviorLib.tBehaviors, behaviorLib.HarassHeroBehavior)
 -- @return: none
 function object:onthinkOverride(tGameVariables)
   self:onthinkOld(tGameVariables)
-
   -- custom code here
+  generics.AnalyzeAllyHeroPosition(core.unitSelf)
 end
 object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride
@@ -248,7 +248,9 @@ object.onthink = object.onthinkOverride
 local healAtWellOldUtility = behaviorLib.HealAtWellBehavior["Utility"]
 
 local function HealAtWellUtilityOverride(botBrain)
+  -- BotEcho("heelaa")
   if core.unitSelf:GetHealthPercent() and core.unitSelf:GetHealthPercent() < 0.15 then
+    -- BotEcho("wat")
     return 999
   end
   return healAtWellOldUtility(botBrain)
@@ -264,12 +266,14 @@ local harassOldExecute = behaviorLib.HarassHeroBehavior["Execute"]
 local function harassUtilityOverride(botBrain)
   local old = harassOldUtility(botBrain)
   local hpPc = core.unitSelf:GetHealthPercent()
-  local state = generics.AnalyzeAllyHeroPosition(core.unitSelf)
+  local state = generics.positionStatus
   BotEcho("state is " .. state .. " old " .. old)
   if state == "ATTACK" and hpPc > 0.15 then
-    return old + 80
+    return 99
+    -- return old + 80
   elseif state == "HARASS" and hpPc > 0.15 then
-    return old + 40
+    return old + 20
+    -- return old + 40
   else
     return old
   end

@@ -114,12 +114,6 @@ behaviorLib.LaneItems = {"Item_Marchers", "Item_EnhancedMarchers", "Item_PowerSu
 behaviorLib.MidItems = {"Item_PortalKey", "Item_MagicArmor2"}
 behaviorLib.LateItems = {"Item_BehemothsHeart"}
 
-------------------------------------------------------
---            onthink override                      --
--- Called every bot tick, custom onthink code here  --
-------------------------------------------------------
--- @param: tGameVariables
--- @return: none
 local function HasEnemiesInRange(unit, range)
   local enemies = core.CopyTable(core.localUnits["EnemyHeroes"])
   local rangeSq = range * range
@@ -132,8 +126,15 @@ local function HasEnemiesInRange(unit, range)
   return false
 end
 
+------------------------------------------------------
+--            onthink override                      --
+-- Called every bot tick, custom onthink code here  --
+------------------------------------------------------
+-- @param: tGameVariables
+-- @return: none
 function object:onthinkOverride(tGameVariables)
   self:onthinkOld(tGameVariables)
+  generics.AnalyzeAllyHeroPosition(core.unitSelf)
 
   local tEnemies = core.CopyTable(core.localUnits["EnemyHeroes"])
   for _, enemy in pairs(tEnemies) do
@@ -179,12 +180,14 @@ local harassOldExecute = behaviorLib.HarassHeroBehavior["Execute"]
 local function harassUtilityOverride(botBrain)
   local old = harassOldUtility(botBrain)
   local hpPc = core.unitSelf:GetHealthPercent()
-  local state = generics.AnalyzeAllyHeroPosition(core.unitSelf)
+  local state = generics.positionStatus
   BotEcho("state is " .. state .. " old " .. old)
   if state == "ATTACK" and hpPc > 0.15 then
-    return old + 80
+    return 99
+    -- return old + 80
   elseif state == "HARASS" and hpPc > 0.15 then
-    return old + 40
+    return old + 20
+    -- return old + 40
   else
     return old
   end

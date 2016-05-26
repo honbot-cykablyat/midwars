@@ -17,6 +17,8 @@ local generics = object.generics
 
 BotEcho("loading default generics ..")
 
+generics.positionStatus = nil
+
 function takeHealUtility(botBrain)
   local healPos = core.teamBotBrain.healPosition
   if healPos and core.unitSelf:GetHealthPercent() < 0.50 then
@@ -38,28 +40,30 @@ generics.TakeHealBehavior["Execute"] = takeHealExecute
 generics.TakeHealBehavior["Name"] = "TakeHeal"
 
 function groupUtility(botBrain)
-  local allyTeam = core.teamBotBrain.allyTeam
-  if allyTeam and allyTeam[1] then
-    if generics.AnalyzeAllyHeroPosition(core.unitSelf) == "GROUP" then
-      return 25
-    end
-  end
-  return 0
+  local value = 0
+  -- if generics.positionStatus == "GROUP" then
+  --   value = 25
+  -- elseif core.teamBotBrain:GetTeamStatus() == "REGROUP" then
+  --   value = 40
+  -- end
+  -- BotEcho("asdf " .. value)
+  return value
 end
 
 function groupExecute(botBrain)
-  local unitSelf = core.unitSelf
-  local enemyBasePos = core.enemyMainBaseStructure:GetPosition()
-  local allyTower = core.GetClosestAllyTower(enemyBasePos)
-  local allyTowerPos = allyTower:GetPosition()
-  if Vector3.Distance2D(unitSelf, allyTowerPos) < 1000 then
-    botBrain:OrderPosition(unitSelf.object, "attack", allyTowerPos, "none", nil, false)
-  end
-  local allyTeam = core.teamBotBrain:GetAllyTeam(unitSelf:GetPosition(), 1000);
-  allyTeam = HoN.GetGroupCenter(allyTeam);
-  if allyTeam then
-    botBrain:OrderPosition(unitSelf.object, "attack", allyTeam, "none", nil, false)
-  end
+  return true
+  -- local unitSelf = core.unitSelf
+  -- local enemyBasePos = core.enemyMainBaseStructure:GetPosition()
+  -- local allyTower = core.GetClosestAllyTower(enemyBasePos)
+  -- local allyTowerPos = allyTower:GetPosition()
+  -- if Vector3.Distance2D(unitSelf:GetPosition(), allyTowerPos) < 1000 then
+  --   botBrain:OrderPosition(unitSelf.object, "attack", allyTowerPos, "none", nil, false)
+  -- end
+  -- local allyTeam = core.teamBotBrain:GetAllyTeam(unitSelf:GetPosition(), 1000);
+  -- allyTeam = HoN.GetGroupCenter(allyTeam);
+  -- if allyTeam then
+  --   botBrain:OrderPosition(unitSelf.object, "attack", allyTeam, "none", nil, false)
+  -- end
 end
 
 generics.GroupBehavior = {}
@@ -180,7 +184,7 @@ function generics.FindBestEnemyTargetInRange(range)
   return bestTarget
 end
 
-function CalculateTeamHealthPc(team)
+function generics.CalculateTeamHealthPc(team)
   if table.getn(team) == 0 then
     return 0
   end
@@ -193,7 +197,8 @@ end
 
 -- returns 0 if no tower, 1 if ally tower, -1 if enemy tower
 -- can't have both ally tower and enemy tower in range??
-function AnalyzeNearbyTowers(pos)
+function generics.AnalyzeNearbyTowers(pos)
+  -- BotEcho("yo")
   local status = 0
   for _, building in pairs(core.localUnits["AllyBuildings"]) do
     if building:IsTower() then
@@ -204,9 +209,11 @@ function AnalyzeNearbyTowers(pos)
     end
   end
   for _, building in pairs(core.localUnits["EnemyBuildings"]) do
+    -- BotEcho("building " .. building:GetTypeName())
     if building:IsTower() then
       local dist = Vector3.Distance2D(pos, building:GetPosition())
-      if dist < 800 then
+      -- BotEcho("dist" .. dist)
+      if dist < 1000 then
         status = -1
       end
     end
@@ -220,19 +227,124 @@ function generics.AnalyzeAllyHeroPosition(hero)
   local nearbyEnemies = core.teamBotBrain:GetEnemyTeam(heroPos, 1000)
   local allyCount = table.getn(nearbyAllies)
   local enemyCount = table.getn(nearbyEnemies)
-  local allyAvgHpPc = CalculateTeamHealthPc(nearbyAllies)
-  local enemyAvgHpPc = CalculateTeamHealthPc(nearbyEnemies)
-  local towerStatus = AnalyzeNearbyTowers(heroPos)
+  local allyAvgHpPc = generics.CalculateTeamHealthPc(nearbyAllies)
+  local enemyAvgHpPc = generics.CalculateTeamHealthPc(nearbyEnemies)
+  local towerStatus = generics.AnalyzeNearbyTowers(heroPos)
+  local status = nil
   -- core.BotEcho(allyCount .. " " .. enemyCount .. " " .. allyAvgHpPc .. " " .. enemyAvgHpPc)
-  if enemyCount > allyCount and enemyAvgHpPc > allyAvgHpPc then
-    return "RETREAT"
+  BotEcho("tower status " .. towerStatus)
+  if enemyCount > allyCount and (enemyAvgHpPc > allyAvgHpPc + 0.3 or towerStatus == -1) then
+    status =  "RETREAT"
   elseif enemyCount == 0 or enemyCount > allyCount or (enemyCount == allyCount and enemyAvgHpPc >= allyAvgHpPc) then
-    return "GROUP"
+    status = "GROUP"
   elseif (enemyCount == allyCount and allyAvgHpPc > enemyAvgHpPc) or (allyCount > enemyCount and enemyAvgHpPc > allyAvgHpPc) then
-    return "HARASS"
+    status = "HARASS"
   elseif allyCount > enemyCount and allyAvgHpPc > enemyAvgHpPc then
-    return "ATTACK"
+    status = "ATTACK"
   else
-    return "GROUP"
+    status = "GROUP"
+  end
+  BotEcho("status: " .. status)
+  generics.positionStatus = status
+end
+
+function RallyTeamBehaviorUtility(botBrain)
+  if core.teamBotBrain:GetTeamStatus() == "RALLY_TEAM" then
+    return 35
+  end
+  return 0
+end
+
+function RallyTeamBehaviorExecute(botBrain)
+  local rallyPoint = core.teamBotBrain:GetRallyPoint()
+  local dist = Vector3.Distance2D(core.unitSelf:GetPosition(), rallyPoint)
+  if dist > 250 then
+    if Vector3.Distance2DSq(core.unitSelf:GetPosition(), rallyPoint) > 1200 * 1200 then
+      itemGhostMarchers = core.GetItem("Item_EnhancedMarchers")
+      if itemGhostMarchers ~= nil and itemGhostMarchers:CanActivate() then
+        botBrain:OrderItem(itemGhostMarchers.object or itemGhostMarchers, false)
+      end
+    end
+    core.OrderMoveToPosAndHoldClamp(botBrain, core.unitSelf, rallyPoint, false)
+  else
+    core.teamBotBrain:UpdateHeroStatus(core.unitSelf, "RALLYING")
   end
 end
+
+behaviorLib.RallyTeamBehavior = {}
+behaviorLib.RallyTeamBehavior["Utility"] = RallyTeamBehaviorUtility
+behaviorLib.RallyTeamBehavior["Execute"] = RallyTeamBehaviorExecute
+behaviorLib.RallyTeamBehavior["Name"] = "RallyTeam"
+
+-- update team when you are going to well for healing
+
+-- local function CustomHealAtWellExecute(botBrain)
+--   core.teamBotBrain:UpdateTeamOfHeroStatus(core.unitSelf, "HEALING")
+--   return false
+-- end
+--
+-- behaviorLib.CustomHealAtWellBehavior["Execute"] = CustomHealAtWellExecute
+
+-- fix that stupid ring
+
+local function PositionSelfExecuteFix(botBrain)
+	local nCurrentTimeMS = HoN.GetGameTime()
+	local unitSelf = core.unitSelf
+	local vecMyPosition = unitSelf:GetPosition()
+
+	if core.unitSelf:IsChanneling() then
+		return
+	end
+
+	local vecDesiredPos = vecMyPosition
+	local unitTarget = nil
+	vecDesiredPos, unitTarget = behaviorLib.PositionSelfLogic(botBrain)
+
+	if vecDesiredPos then
+		behaviorLib.MoveExecute(botBrain, vecDesiredPos)
+	else
+		BotEcho("PositionSelfExecute - nil desired position")
+		return false
+	end
+
+end
+behaviorLib.PositionSelfBehavior["Execute"] = PositionSelfExecuteFix
+
+local function PushExecuteFix(botBrain)
+	if core.unitSelf:IsChanneling() then
+		return
+	end
+
+	local unitSelf = core.unitSelf
+	local bActionTaken = false
+
+	--Attack creeps if we're in range
+	if bActionTaken == false then
+		local unitTarget = core.unitEnemyCreepTarget
+		if unitTarget then
+			local nRange = core.GetAbsoluteAttackRangeToUnit(unitSelf, unitTarget)
+			if unitSelf:GetAttackType() == "melee" then
+				--override melee so they don't stand *just* out of range
+				nRange = 250
+			end
+
+			if unitSelf:IsAttackReady() and core.IsUnitInRange(unitSelf, unitTarget, nRange) then
+				bActionTaken = core.OrderAttackClamp(botBrain, unitSelf, unitTarget)
+			end
+
+		end
+	end
+
+	if bActionTaken == false then
+		local vecDesiredPos = behaviorLib.PositionSelfLogic(botBrain)
+		if vecDesiredPos then
+			bActionTaken = behaviorLib.MoveExecute(botBrain, vecDesiredPos)
+
+		end
+	end
+
+	if bActionTaken == false then
+		return false
+	end
+end
+behaviorLib.PushBehavior["Execute"] = PushExecuteFix
