@@ -156,7 +156,19 @@ local healAtWellOldUtility = behaviorLib.HealAtWellBehavior["Utility"]
 
 local function HealAtWellUtilityOverride(botBrain)
   if core.unitSelf:GetHealthPercent() and core.unitSelf:GetHealthPercent() < 0.15 then
-    return 999
+    local util = 0
+    local heroAddition = 20
+    local range = 2200
+    local rangeSq = range * range
+    local enemyHeroes = core.CopyTable(core.localUnits["EnemyHeroes"]);
+    if enemyHeroes then
+      for _, enemy in pairs(enemyHeroes) do
+        if Vector3.Distance2DSq(enemy:GetPosition(), myPos) < rangeSq then
+          util = util + heroAddition
+        end
+      end
+    end
+    return util
   end
   return healAtWellOldUtility(botBrain)
 end
