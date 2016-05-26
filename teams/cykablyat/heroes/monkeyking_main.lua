@@ -71,6 +71,7 @@ tinsert(behaviorLib.tBehaviors, behaviorLib.StashBehavior)
 tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
 tinsert(behaviorLib.tBehaviors, generics.GroupBehavior)
 tinsert(behaviorLib.tBehaviors, generics.DodgeBehavior)
+tinsert(behaviorLib.tBehaviors, generics.RallyTeamBehavior)
 
 behaviorLib.StartingItems =
   {"Item_LoggersHatchet", "Item_ManaPotion", "Item_MinorTotem", "Item_RunesOfTheBlight"}
@@ -240,6 +241,7 @@ function object:onthinkOverride(tGameVariables)
   self:onthinkOld(tGameVariables)
   -- custom code here
   generics.AnalyzeAllyHeroPosition(core.unitSelf)
+  core.teamBotBrain:UpdateHeroBehavior(core.unitSelf, object.sCurrentBehaviorName)
 end
 object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride

@@ -19,7 +19,7 @@ object.attack_priority = {"Hero_Fairy", "Hero_PuppetMaster", "Hero_Valkyrie", "H
 object.healPosition = nil
 
 object.teamStatus = {}
-object.teamHeroStatuses = nil
+object.teamHeroStatuses = {}
 object.teamRallyPoint = nil
 object.teamTarget = nil
 
@@ -51,10 +51,20 @@ function object:GetTeamStatus()
   return object.teamStatus
 end
 
+function object:GetRallyPoint()
+  return object.teamRallyPoint
+end
+
 function CreateRallyPoint()
+  core.BotEcho("creating rally point!")
   local enemyBasePos = core.enemyMainBaseStructure:GetPosition()
-  local allyTower = core.GetClosestAllyTower(enemyBasePos)
-  object.teamRallyPoint = allyTower:GetPosition()
+  local allyBasePos = core.allyMainBaseStructure:GetPosition()
+  local allyTowerPos = core.GetClosestAllyTower(enemyBasePos):GetPosition()
+  local rallyPoint = allyTowerPos + (Vector3.Normalize(allyBasePos - allyTowerPos) * 200)
+  core.DrawXPosition(rallyPoint, "orange", 1000)
+  object.teamRallyPoint = rallyPoint
+  -- object.teamRallyPoint = allyTowerPos
+  -- core.DrawXPosition(object.teamRallyPoint, "green", 800)
 end
 
 function object:UpdateTeamStatus()
@@ -69,21 +79,34 @@ function object:UpdateTeamStatus()
       rallying = rallying + 1
     end
   end
-  if healing > 2 and table.getn(enemyTeam) > table.getn(allyTeam) then
+  core.BotEcho("team status: healing " .. healing .. " rallying " .. rallying)
+  core.BotEcho("ally count " .. table.getn(allyTeam) .. " enemy count " .. table.getn(enemyTeam))
+  if healing > 1 or table.getn(allyTeam) < 4 then
     object.teamStatus = "RALLY_TEAM"
     CreateRallyPoint()
   elseif rallying == 5 then
     object.teamStatus = ""
+    object.teamHeroStatuses = {}
     object.teamRallyPoint = ""
   elseif object.teamStatus == "RALLY_TEAM" then
   else
     object.teamStatus = ""
   end
+  core.BotEcho("which means " .. object.teamStatus)
 end
 
-function object:UpdateHeroStatus(hero, status)
-  object.teamHeroStatuses[hero:GetUniqueID()] = status
-  object.UpdateTeamStatus()
+function object:GetHeroBehavior(hero)
+  return object.teamHeroStatuses[hero:GetUniqueID()]
+end
+
+function object:UpdateHeroBehavior(hero, behavior)
+  if behavior == "HealAtWell" then
+    object.teamHeroStatuses[hero:GetUniqueID()] = "HEALING"
+  elseif behavior == "Shop" then
+    object.teamHeroStatuses[hero:GetUniqueID()] = "HEALING"
+  elseif behavior == "Rallying" then
+    object.teamHeroStatuses[hero:GetUniqueID()] = "RALLYING"
+  end
 end
 
 -- function object:GetTeamTarget()
@@ -107,6 +130,9 @@ end
 function object:onthinkOverride(tGameVariables)
   self:onthinkOld(tGameVariables)
   -- custom code here
+  object.UpdateTeamStatus()
+  core.BotEcho("team status : " .. object.teamStatus)
+  CreateRallyPoint()
 end
 object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride

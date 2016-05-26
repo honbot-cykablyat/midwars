@@ -103,6 +103,7 @@ function object:onthinkOverride(tGameVariables)
   self:onthinkOld(tGameVariables)
   -- custom code here
   generics.AnalyzeAllyHeroPosition(core.unitSelf)
+  core.teamBotBrain:UpdateHeroBehavior(core.unitSelf, object.sCurrentBehaviorName)
 end
 object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride
@@ -110,6 +111,7 @@ object.onthink = object.onthinkOverride
 tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
 tinsert(behaviorLib.tBehaviors, generics.GroupBehavior)
 tinsert(behaviorLib.tBehaviors, generics.DodgeBehavior)
+tinsert(behaviorLib.tBehaviors, generics.RallyTeamBehavior)
 
 -- Custom healAtWell behaviorLib
 

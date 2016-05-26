@@ -17,7 +17,7 @@ local generics = object.generics
 
 BotEcho("loading default generics ..")
 
-generics.positionStatus = nil
+generics.positionStatus = "NULL:D"
 
 function takeHealUtility(botBrain)
   local healPos = core.teamBotBrain.healPosition
@@ -336,16 +336,19 @@ function generics.AnalyzeAllyHeroPosition(hero)
 end
 
 function RallyTeamBehaviorUtility(botBrain)
-  if core.teamBotBrain:GetTeamStatus() == "RALLY_TEAM" then
-    return 35
-  end
+  -- if core.teamBotBrain:GetTeamStatus() == "RALLY_TEAM" and core.teamBotBrain:GetHeroBehavior(core.unitSelf) ~= "HEALING" then
+  --   BotEcho("rallying!!!")
+  --   return 0
+  --   -- return 60
+  -- end
   return 0
 end
 
 function RallyTeamBehaviorExecute(botBrain)
+  BotEcho("executing rally behavior")
   local rallyPoint = core.teamBotBrain:GetRallyPoint()
   local dist = Vector3.Distance2D(core.unitSelf:GetPosition(), rallyPoint)
-  if dist > 250 then
+  if dist > 700 then
     if Vector3.Distance2DSq(core.unitSelf:GetPosition(), rallyPoint) > 1200 * 1200 then
       itemGhostMarchers = core.GetItem("Item_EnhancedMarchers")
       if itemGhostMarchers ~= nil and itemGhostMarchers:CanActivate() then
@@ -354,23 +357,15 @@ function RallyTeamBehaviorExecute(botBrain)
     end
     core.OrderMoveToPosAndHoldClamp(botBrain, core.unitSelf, rallyPoint, false)
   else
-    core.teamBotBrain:UpdateHeroStatus(core.unitSelf, "RALLYING")
+    BotEcho("at rally point")
+    core.teamBotBrain:UpdateHeroBehavior(core.unitSelf, "Rallying")
   end
 end
 
-behaviorLib.RallyTeamBehavior = {}
-behaviorLib.RallyTeamBehavior["Utility"] = RallyTeamBehaviorUtility
-behaviorLib.RallyTeamBehavior["Execute"] = RallyTeamBehaviorExecute
-behaviorLib.RallyTeamBehavior["Name"] = "RallyTeam"
-
--- update team when you are going to well for healing
-
--- local function CustomHealAtWellExecute(botBrain)
---   core.teamBotBrain:UpdateTeamOfHeroStatus(core.unitSelf, "HEALING")
---   return false
--- end
---
--- behaviorLib.CustomHealAtWellBehavior["Execute"] = CustomHealAtWellExecute
+generics.RallyTeamBehavior = {}
+generics.RallyTeamBehavior["Utility"] = RallyTeamBehaviorUtility
+generics.RallyTeamBehavior["Execute"] = RallyTeamBehaviorExecute
+generics.RallyTeamBehavior["Name"] = "RallyTeam"
 
 -- fix that stupid ring
 

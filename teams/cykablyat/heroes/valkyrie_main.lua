@@ -14,9 +14,9 @@ object.bAttackCommands = true
 object.bAbilityCommands = true
 object.bOtherCommands = true
 
-object.bReportBehavior = false
-object.bDebugUtility = false
-object.bDebugExecute = false
+object.bReportBehavior = true
+object.bDebugUtility = true
+object.bDebugExecute = true
 
 object.logger = {}
 object.logger.bWriteLog = false
@@ -72,6 +72,7 @@ tinsert(behaviorLib.tBehaviors, behaviorLib.HarassHeroBehavior)
 tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
 tinsert(behaviorLib.tBehaviors, generics.GroupBehavior)
 tinsert(behaviorLib.tBehaviors, generics.DodgeBehavior)
+tinsert(behaviorLib.tBehaviors, generics.RallyTeamBehavior)
 
 local bSkillsValid = false
 function object:SkillBuild()
@@ -118,6 +119,7 @@ function object:onthinkOverride(tGameVariables)
   self:onthinkOld(tGameVariables)
   -- custom code here
   generics.AnalyzeAllyHeroPosition(core.unitSelf)
+  core.teamBotBrain:UpdateHeroBehavior(core.unitSelf, object.sCurrentBehaviorName)
 end
 object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride
@@ -157,14 +159,18 @@ local function harassUtilityOverride(botBrain)
   local old = harassOldUtility(botBrain)
   local hpPc = core.unitSelf:GetHealthPercent()
   local state = generics.positionStatus
+  local teamState = core.teamBotBrain:GetTeamStatus()
   BotEcho("state is " .. state .. " old " .. old)
   if state == "ATTACK" and hpPc > 0.15 then
     return 99
     -- return old + 80
-  elseif state == "HARASS" and hpPc > 0.15 then
+  elseif state == "HARASS" and hpPc > 0.15 and teamState ~= "RALLY_TEAM" then
     return old + 20
     -- return old + 40
   else
+    if teamState == "RALLY_TEAM" then
+      return old - 50
+    end
     return old
   end
 end
