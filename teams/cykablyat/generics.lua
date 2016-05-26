@@ -40,7 +40,7 @@ generics.TakeHealBehavior["Name"] = "TakeHeal"
 function groupUtility(botBrain)
   local allyTeam = core.teamBotBrain.allyTeam
   if allyTeam and allyTeam[1] then
-    if core.teamBotBrain:AnalyzeAllyHeroPosition(core.unitSelf) == "GROUP" then
+    if generics.AnalyzeAllyHeroPosition(core.unitSelf) == "GROUP" then
       return 25
     end
   end
@@ -178,4 +178,61 @@ function generics.FindBestEnemyTargetInRange(range)
     end
   end
   return bestTarget
+end
+
+function CalculateTeamHealthPc(team)
+  if table.getn(team) == 0 then
+    return 0
+  end
+  local teamHpPc = 0
+  for _, hero in pairs(team) do
+    teamHpPc = teamHpPc + hero:GetHealthPercent()
+  end
+  return teamHpPc / table.getn(team)
+end
+
+-- returns 0 if no tower, 1 if ally tower, -1 if enemy tower
+-- can't have both ally tower and enemy tower in range??
+function AnalyzeNearbyTowers(pos)
+  local status = 0
+  for _, building in pairs(core.localUnits["AllyBuildings"]) do
+    if building:IsTower() then
+      local dist = Vector3.Distance2D(pos, building:GetPosition())
+      if dist < 600 then
+        status = 1
+      end
+    end
+  end
+  for _, building in pairs(core.localUnits["EnemyBuildings"]) do
+    if building:IsTower() then
+      local dist = Vector3.Distance2D(pos, building:GetPosition())
+      if dist < 800 then
+        status = -1
+      end
+    end
+  end
+  return status
+end
+
+function generics.AnalyzeAllyHeroPosition(hero)
+  local heroPos = hero:GetPosition()
+  local nearbyAllies = core.teamBotBrain:GetAllyTeam(heroPos, 1000)
+  local nearbyEnemies = core.teamBotBrain:GetEnemyTeam(heroPos, 1000)
+  local allyCount = table.getn(nearbyAllies)
+  local enemyCount = table.getn(nearbyEnemies)
+  local allyAvgHpPc = CalculateTeamHealthPc(nearbyAllies)
+  local enemyAvgHpPc = CalculateTeamHealthPc(nearbyEnemies)
+  local towerStatus = AnalyzeNearbyTowers(heroPos)
+  -- core.BotEcho(allyCount .. " " .. enemyCount .. " " .. allyAvgHpPc .. " " .. enemyAvgHpPc)
+  if enemyCount > allyCount and enemyAvgHpPc > allyAvgHpPc then
+    return "RETREAT"
+  elseif enemyCount == 0 or enemyCount > allyCount or (enemyCount == allyCount and enemyAvgHpPc >= allyAvgHpPc) then
+    return "GROUP"
+  elseif (enemyCount == allyCount and allyAvgHpPc > enemyAvgHpPc) or (allyCount > enemyCount and enemyAvgHpPc > allyAvgHpPc) then
+    return "HARASS"
+  elseif allyCount > enemyCount and allyAvgHpPc > enemyAvgHpPc then
+    return "ATTACK"
+  else
+    return "GROUP"
+  end
 end

@@ -105,7 +105,7 @@ function object:onthinkOverride(tGameVariables)
   -- BotEcho("lasdfasdf")
   -- BotEcho(core.tMyLane)
   -- core.printTable(core.tMyLane)
-  local state = core.teamBotBrain:AnalyzeAllyHeroPosition(core.unitSelf)
+  local state = generics.AnalyzeAllyHeroPosition(core.unitSelf)
   -- BotEcho("puppet state: " .. state)
 end
 object.onthinkOld = object.onthink
@@ -176,8 +176,8 @@ local harassOldExecute = behaviorLib.HarassHeroBehavior["Execute"]
 local function harassUtilityOverride(botBrain)
   local old = harassOldUtility(botBrain)
   local hpPc = core.unitSelf:GetHealthPercent()
-  local state = core.teamBotBrain:AnalyzeAllyHeroPosition(core.unitSelf)
-  -- BotEcho("state is " .. state .. " old " .. old)
+  local state = generics.AnalyzeAllyHeroPosition(core.unitSelf)
+  BotEcho("state is " .. state .. " old " .. old)
   if state == "ATTACK" and hpPc > 0.15 then
     return old + 80
   elseif state == "HARASS" and hpPc > 0.15 then
