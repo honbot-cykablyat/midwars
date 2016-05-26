@@ -71,6 +71,7 @@ tinsert(behaviorLib.tBehaviors, behaviorLib.StashBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.HarassHeroBehavior)
 tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
 tinsert(behaviorLib.tBehaviors, generics.GroupBehavior)
+tinsert(behaviorLib.tBehaviors, generics.DodgeBehavior)
 
 local bSkillsValid = false
 function object:SkillBuild()

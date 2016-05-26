@@ -109,6 +109,7 @@ object.onthink = object.onthinkOverride
 
 tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
 tinsert(behaviorLib.tBehaviors, generics.GroupBehavior)
+tinsert(behaviorLib.tBehaviors, generics.DodgeBehavior)
 
 -- Custom healAtWell behaviorLib
 
