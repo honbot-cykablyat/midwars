@@ -73,6 +73,7 @@ tinsert(behaviorLib.tBehaviors, behaviorLib.HarassHeroBehavior)
 tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
 tinsert(behaviorLib.tBehaviors, generics.GroupBehavior)
 tinsert(behaviorLib.tBehaviors, generics.DodgeBehavior)
+tinsert(behaviorLib.tBehaviors, generics.HitBuildingBehavior)
 
 local bSkillsValid = false
 function object:SkillBuild()
@@ -135,7 +136,7 @@ end
 
 function object:onthinkOverride(tGameVariables)
   self:onthinkOld(tGameVariables)
-  
+
   if HasEnemiesInRange(core.unitSelf, 250) then
     if not core.unitSelf:HasState("State_Devourer_Ability2_Self") then
       object:OrderAbility(skills.fart)
