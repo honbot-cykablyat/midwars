@@ -67,6 +67,9 @@ tinsert(behaviorLib.tBehaviors, behaviorLib.RetreatFromThreatBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.PreGameBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.ShopBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.StashBehavior)
+tinsert(behaviorLib.tBehaviors, behaviorLib.HarassHeroBehavior)
+tinsert(behaviorLib.tBehaviors, generics.GroupBehavior)
+tinsert(behaviorLib.tBehaviors, generics.DodgeBehavior)
 
 behaviorLib.StartingItems =
   {"Item_CrushingClaws", "Item_GuardianRing", "Item_ManaBattery", "Item_MinorTotem"}
@@ -127,24 +130,49 @@ end
 object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride
 
+-- Custom healAtWell behaviorLib
+
+local healAtWellOldUtility = behaviorLib.HealAtWellBehavior["Utility"]
+
+local function HealAtWellUtilityOverride(botBrain)
+  if core.unitSelf:GetHealthPercent() and core.unitSelf:GetHealthPercent() < 0.15 then
+    return 100
+  end
+  return healAtWellOldUtility(botBrain)
+end
+
+behaviorLib.HealAtWellBehavior["Utility"] = HealAtWellUtilityOverride
+
+-- end healAtWell
+
 local harassOldUtility = behaviorLib.HarassHeroBehavior["Utility"]
 local harassOldExecute = behaviorLib.HarassHeroBehavior["Execute"]
 
 local function harassUtilityOverride(botBrain)
-  if core.teamBotBrain.GetState and core.teamBotBrain:GetState() == "LANE_AGGRESSIVELY" then
-    return 100
+  local old = harassOldUtility(botBrain)
+  local hpPc = core.unitSelf:GetHealthPercent()
+  local state = generics.AnalyzeAllyHeroPosition(core.unitSelf)
+  BotEcho("state is " .. state .. " old " .. old)
+  if state == "ATTACK" and hpPc > 0.15 then
+    return old + 80
+  elseif state == "HARASS" and hpPc > 0.15 then
+    return old + 40
+  else
+    return old
   end
-  return harassOldUtility(botBrain)
 end
 
 local function harassExecuteOverride(botBrain)
-  -- local targetHero = behaviorLib.heroTarget
-  local targetHero = core.teamBotBrain:GetTeamTarget()
-  if targetHero == nil or not targetHero:IsValid() then
-    return false --can not execute, move on to the next behavior
-  end
-
   local unitSelf = core.unitSelf
+  -- local targetHero = core.teamBotBrain:FindBestEnemyTargetInRange(unitSelf:GetPosition(), 1000)
+  local targetHero = generics.FindBestEnemyTargetInRange(800)
+  if targetHero == nil then
+    return false
+  end
+  behaviorLib.heroTarget = targetHero
+
+  --core.DrawXPosition(targetHero:GetPosition(), "red", 400)
+
   local nTargetDistanceSq = Vector3.Distance2DSq(unitSelf:GetPosition(), targetHero:GetPosition())
 
   local bActionTaken = false
@@ -169,13 +197,38 @@ end
 behaviorLib.HarassHeroBehavior["Utility"] = harassUtilityOverride
 behaviorLib.HarassHeroBehavior["Execute"] = harassExecuteOverride
 
+-- custom destroy building behavior
+
+local function DestroyBuildingUtility(botBrain)
+  for _, enemyBuilding in pairs(core.localUnits["EnemyBuildings"]) do
+    -- BotEcho(enemyBuilding:GetTypeName())
+    if enemyBuilding:IsBase() then
+      behaviorLib.heroTarget = enemyBuilding
+      local value = math.ceil(0.75 - enemyBuilding:GetHealthPercent()) * (1 - enemyBuilding:GetHealthPercent()) * 250
+      return value
+    end
+  end
+  return 0
+end
+
+local function DestroyBuildingExecute(botBrain)
+  core.OrderAttack(botBrain, core.unitSelf, behaviorLib.heroTarget)
+  return true
+end
+
+local DestroyBuildingBehavior = {}
+DestroyBuildingBehavior["Utility"] = DestroyBuildingUtility
+DestroyBuildingBehavior["Execute"] = DestroyBuildingExecute
+DestroyBuildingBehavior["Name"] = "DestroyBuilding"
+tinsert(behaviorLib.tBehaviors, DestroyBuildingBehavior)
+
 local stunTarget = nil
 local function StunUtility(botBrain)
   if not skills.stun:CanActivate() then
     return 0
   end
-  local target = core.teamBotBrain:GetTeamTarget()
-  if target then
+  local target = generics.FindBestEnemyTargetInRange(600)
+  if target and target:IsHero() then
     stunTarget = target
     return 100
   end
@@ -183,7 +236,7 @@ local function StunUtility(botBrain)
   for _, enemy in pairs(core.localUnits["EnemyHeroes"]) do
     local pos = generics.predict_location(core.unitSelf, enemy, 1000);
     local nDistSq = Vector3.Distance2DSq(core.unitSelf:GetPosition(), pos);
-    local range = skills.stun:GetRange() * 1.33
+    local range = skills.stun:GetRange()
     if nDistSq < range * range then
       if enemy:GetHealthPercent() < health then
         target = enemy
@@ -200,8 +253,10 @@ end
 
 local function StunExecute(botBrain)
   if stunTarget and skills.stun:CanActivate() then
-    local pos = generics.predict_location(core.unitSelf, stunTarget, 1000)
-    core.OrderAbilityPosition(botBrain, skills.stun, pos);
+    local pos = generics.predict_location(core.unitSelf, stunTarget, 700)
+    if pos then
+      core.OrderAbilityPosition(botBrain, skills.stun, pos);
+    end
   end
 end
 
@@ -235,7 +290,9 @@ local function HealExecute(botBrain)
   if skills.heal:CanActivate() then
     local pos = generics.predict_location(core.unitSelf, healTarget, 1000)
     core.teamBotBrain.healPosition = pos;
-    core.OrderAbilityPosition(botBrain, skills.heal, pos);
+    if pos then
+      core.OrderAbilityPosition(botBrain, skills.heal, pos);
+    end
   end
 end
 

@@ -105,11 +105,69 @@ function object:onthinkOverride(tGameVariables)
   -- BotEcho("lasdfasdf")
   -- BotEcho(core.tMyLane)
   -- core.printTable(core.tMyLane)
+  local state = generics.AnalyzeAllyHeroPosition(core.unitSelf)
+  -- BotEcho("puppet state: " .. state)
 end
 object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride
 
 tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
+tinsert(behaviorLib.tBehaviors, generics.GroupBehavior)
+tinsert(behaviorLib.tBehaviors, generics.DodgeBehavior)
+
+-- Custom healAtWell behaviorLib
+
+local healAtWellOldUtility = behaviorLib.HealAtWellBehavior["Utility"]
+
+local function HealAtWellUtilityOverride(botBrain)
+  if core.unitSelf:GetHealthPercent() and core.unitSelf:GetHealthPercent() < 0.15 then
+    return 999
+  end
+  return healAtWellOldUtility(botBrain)
+end
+
+behaviorLib.HealAtWellBehavior["Utility"] = HealAtWellUtilityOverride
+
+-- custom destroy building behavior
+
+local function DestroyBuildingUtility(botBrain)
+  for _, enemyBuilding in pairs(core.localUnits["EnemyBuildings"]) do
+    -- BotEcho(enemyBuilding:GetTypeName())
+    if enemyBuilding:IsBase() then
+      behaviorLib.heroTarget = enemyBuilding
+      local value = math.ceil(0.5 - enemyBuilding:GetHealthPercent()) * (1 - enemyBuilding:GetHealthPercent()) * 200
+      -- BotEcho("base!" .. value)
+      return value
+    end
+  end
+  return 0
+end
+
+local function DestroyBuildingExecute(botBrain)
+  core.OrderAttack(botBrain, core.unitSelf, behaviorLib.heroTarget)
+  return true
+end
+
+local DestroyBuildingBehavior = {}
+DestroyBuildingBehavior["Utility"] = DestroyBuildingUtility
+DestroyBuildingBehavior["Execute"] = DestroyBuildingExecute
+DestroyBuildingBehavior["Name"] = "DestroyBuilding"
+tinsert(behaviorLib.tBehaviors, DestroyBuildingBehavior)
+
+-- custom retreat behavior
+
+-- local function TeamRetreatUtility(botBrain)
+--   if core.teamBotBrain:GetState and core.teamBotBrain:GetState() == "TEAM_RETREAT" then
+--     return 100
+--   end
+-- end
+--
+-- local function TeamRetreatExecute(botBrain)
+--   if stunTarget and skills.stun:CanActivate() then
+--     local pos = generics.predict_location(core.unitSelf, stunTarget, 1000)
+--     core.OrderAbilityPosition(botBrain, skills.stun, pos);
+--   end
+-- end
 
 -- Custom harass behaviour
 
@@ -117,20 +175,30 @@ local harassOldUtility = behaviorLib.HarassHeroBehavior["Utility"]
 local harassOldExecute = behaviorLib.HarassHeroBehavior["Execute"]
 
 local function harassUtilityOverride(botBrain)
-  if core.teamBotBrain.GetState and core.teamBotBrain:GetState() == "LANE_AGGRESSIVELY" then
-    return 100
+  local old = harassOldUtility(botBrain)
+  local hpPc = core.unitSelf:GetHealthPercent()
+  local state = generics.AnalyzeAllyHeroPosition(core.unitSelf)
+  BotEcho("state is " .. state .. " old " .. old)
+  if state == "ATTACK" and hpPc > 0.15 then
+    return old + 80
+  elseif state == "HARASS" and hpPc > 0.15 then
+    return old + 40
+  else
+    return old
   end
-  return harassOldUtility(botBrain)
 end
 
 local function harassExecuteOverride(botBrain)
-  -- local targetHero = behaviorLib.targetHero
-  local targetHero = core.teamBotBrain:GetTeamTarget()
-  if targetHero == nil or not targetHero:IsValid() then
-    return false --can not execute, move on to the next behavior
-  end
-
   local unitSelf = core.unitSelf
+  -- local targetHero = core.teamBotBrain:FindBestEnemyTargetInRange(unitSelf:GetPosition(), 1000)
+  local targetHero = generics.FindBestEnemyTargetInRange(1000)
+  if targetHero == nil then
+    return false
+  end
+  behaviorLib.heroTarget = targetHero
+
+  --core.DrawXPosition(targetHero:GetPosition(), "red", 400)
+
   local bActionTaken = false
 
   if core.CanSeeUnit(botBrain, targetHero) then
@@ -167,6 +235,25 @@ end
 
 behaviorLib.HarassHeroBehavior["Utility"] = harassUtilityOverride
 behaviorLib.HarassHeroBehavior["Execute"] = harassExecuteOverride
+
+-- custom kill enemy hero behavior
+
+-- function KillEnemyHeroUtility(botBrain)
+--   if core.teamBotBrain.GetState and core.teamBotBrain:GetState() == "LANE_AGGRESSIVELY" then
+--     local targetHero = core.teamBotBrain:GetTeamTarget()
+--     if targetHero == nil or not targetHero:IsValid() then
+--       return false --can not execute, move on to the next behavior
+--     end
+--     return 100
+--   end
+-- end
+--
+-- function KillEnemyHeroExecute(botBrain)
+--   local healPos = core.teamBotBrain.healPosition
+--   if healPos then
+--   	botBrain:OrderPosition(core.unitSelf.object, "move", healPos, "none", nil, true)
+-- 	end
+-- end
 
 -- ComboWombo behaviour
 

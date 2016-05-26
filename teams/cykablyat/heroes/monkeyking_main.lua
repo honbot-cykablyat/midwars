@@ -14,7 +14,7 @@ object.bAttackCommands = true
 object.bAbilityCommands = true
 object.bOtherCommands = true
 
-object.bReportBehavior = falses
+object.bReportBehavior = false
 object.bDebugUtility = false
 object.bDebugExecute = false
 
@@ -69,6 +69,8 @@ tinsert(behaviorLib.tBehaviors, behaviorLib.PreGameBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.ShopBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.StashBehavior)
 tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
+tinsert(behaviorLib.tBehaviors, generics.GroupBehavior)
+tinsert(behaviorLib.tBehaviors, generics.DodgeBehavior)
 
 behaviorLib.StartingItems =
   {"Item_LoggersHatchet", "Item_ManaPotion", "Item_MinorTotem", "Item_RunesOfTheBlight"}
@@ -242,26 +244,48 @@ end
 object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride
 
+-- Custom healAtWell behaviorLib
 
+local healAtWellOldUtility = behaviorLib.HealAtWellBehavior["Utility"]
+
+local function HealAtWellUtilityOverride(botBrain)
+  if core.unitSelf:GetHealthPercent() and core.unitSelf:GetHealthPercent() < 0.15 then
+    return 999
+  end
+  return healAtWellOldUtility(botBrain)
+end
+
+behaviorLib.HealAtWellBehavior["Utility"] = HealAtWellUtilityOverride
+
+-- end healAtWell
 
 local harassOldUtility = behaviorLib.HarassHeroBehavior["Utility"]
 local harassOldExecute = behaviorLib.HarassHeroBehavior["Execute"]
 
 local function harassUtilityOverride(botBrain)
-  if core.teamBotBrain.GetState and core.teamBotBrain:GetState() == "LANE_AGGRESSIVELY" then
-    return 100
+  local old = harassOldUtility(botBrain)
+  local hpPc = core.unitSelf:GetHealthPercent()
+  local state = generics.AnalyzeAllyHeroPosition(core.unitSelf)
+  BotEcho("state is " .. state .. " old " .. old)
+  if state == "ATTACK" and hpPc > 0.15 then
+    return old + 80
+  elseif state == "HARASS" and hpPc > 0.15 then
+    return old + 40
+  else
+    return old
   end
-  return 0 --harassOldUtility(botBrain)
 end
 
 local function harassExecuteOverride(botBrain)
-  -- local targetHero = behaviorLib.heroTarget
-  local targetHero = core.teamBotBrain:GetTeamTarget()
-  if targetHero == nil or not targetHero:IsValid() then
-    return false --can not execute, move on to the next behavior
-  end
-
   local unitSelf = core.unitSelf
+  -- local targetHero = core.teamBotBrain:FindBestEnemyTargetInRange(unitSelf:GetPosition(), 800)
+  local targetHero = generics.FindBestEnemyTargetInRange(800)
+  if targetHero == nil then
+    return false
+  end
+  behaviorLib.heroTarget = targetHero
+
+  --core.DrawXPosition(targetHero:GetPosition(), "red", 400)
 
   local bActionTaken = false
 
@@ -292,6 +316,30 @@ end
 behaviorLib.HarassHeroBehavior["Utility"] = harassUtilityOverride
 behaviorLib.HarassHeroBehavior["Execute"] = harassExecuteOverride
 
+-- custom destroy building behavior
+
+local function DestroyBuildingUtility(botBrain)
+  for _, enemyBuilding in pairs(core.localUnits["EnemyBuildings"]) do
+    -- BotEcho(enemyBuilding:GetTypeName())
+    if enemyBuilding:IsBase() then
+      -- BotEcho("base!")
+      behaviorLib.heroTarget = enemyBuilding
+      return math.ceil(0.5 - enemyBuilding:GetHealthPercent()) * (1 - enemyBuilding:GetHealthPercent()) * 200
+    end
+  end
+  return 0
+end
+
+local function DestroyBuildingExecute(botBrain)
+  core.OrderAttack(botBrain, core.unitSelf, behaviorLib.heroTarget)
+  return true
+end
+
+local DestroyBuildingBehavior = {}
+DestroyBuildingBehavior["Utility"] = DestroyBuildingUtility
+DestroyBuildingBehavior["Execute"] = DestroyBuildingExecute
+DestroyBuildingBehavior["Name"] = "DestroyBuilding"
+tinsert(behaviorLib.tBehaviors, DestroyBuildingBehavior)
 
 local dash_dmg = {15, 20, 25, 30};
 local pole_dmg = {100, 150, 200, 250};

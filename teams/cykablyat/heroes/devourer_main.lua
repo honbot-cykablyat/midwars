@@ -71,6 +71,8 @@ tinsert(behaviorLib.tBehaviors, behaviorLib.ShopBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.StashBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.HarassHeroBehavior)
 tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
+tinsert(behaviorLib.tBehaviors, generics.GroupBehavior)
+tinsert(behaviorLib.tBehaviors, generics.DodgeBehavior)
 
 local bSkillsValid = false
 function object:SkillBuild()
@@ -147,25 +149,50 @@ end
 object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride
 
+-- Custom healAtWell behaviorLib
+
+local healAtWellOldUtility = behaviorLib.HealAtWellBehavior["Utility"]
+
+local function HealAtWellUtilityOverride(botBrain)
+  if core.unitSelf:GetHealthPercent() and core.unitSelf:GetHealthPercent() < 0.15 then
+    return 999
+  end
+  return healAtWellOldUtility(botBrain)
+end
+
+behaviorLib.HealAtWellBehavior["Utility"] = HealAtWellUtilityOverride
+
+-- end healAtWell
+
 -- Custom harass behaviour
 
 local harassOldUtility = behaviorLib.HarassHeroBehavior["Utility"]
 local harassOldExecute = behaviorLib.HarassHeroBehavior["Execute"]
 
 local function harassUtilityOverride(botBrain)
-  if core.teamBotBrain.GetState and core.teamBotBrain:GetState() == "LANE_AGGRESSIVELY" then
-    return 100
+  local old = harassOldUtility(botBrain)
+  local hpPc = core.unitSelf:GetHealthPercent()
+  local state = generics.AnalyzeAllyHeroPosition(core.unitSelf)
+  BotEcho("state is " .. state .. " old " .. old)
+  if state == "ATTACK" and hpPc > 0.15 then
+    return old + 80
+  elseif state == "HARASS" and hpPc > 0.15 then
+    return old + 40
+  else
+    return old
   end
-  return harassOldUtility(botBrain)
 end
 
 local function harassExecuteOverride(botBrain)
-  local unitTarget = core.teamBotBrain:GetTeamTarget()
-  if unitTarget == nil or not unitTarget:IsValid() then
-    return false --can not execute, move on to the next behavior
-  end
-
   local unitSelf = core.unitSelf
+  -- local targetHero = core.teamBotBrain:FindBestEnemyTargetInRange(unitSelf:GetPosition(), 800)
+  local targetHero = generics.FindBestEnemyTargetInRange(800)
+  if targetHero == nil then
+    return false
+  end
+  behaviorLib.heroTarget = targetHero
+
+  --core.DrawXPosition(targetHero:GetPosition(), "red", 400)
 
   if unitSelf:IsChanneling() then
     return
@@ -174,22 +201,22 @@ local function harassExecuteOverride(botBrain)
   local bActionTaken = false
 
   --since we are using an old pointer, ensure we can still see the target for entity targeting
-  if core.CanSeeUnit(botBrain, unitTarget) then
-    local dist = Vector3.Distance2D(unitSelf:GetPosition(), unitTarget:GetPosition())
-    local attkRange = core.GetAbsoluteAttackRangeToUnit(unitSelf, unitTarget);
+  if core.CanSeeUnit(botBrain, targetHero) then
+    local dist = Vector3.Distance2D(unitSelf:GetPosition(), targetHero:GetPosition())
+    local attkRange = core.GetAbsoluteAttackRangeToUnit(unitSelf, targetHero);
 
     local itemGhostMarchers = core.itemGhostMarchers
 
     local ulti = skills.ulti
-    local ultiRange = ulti and (ulti:GetRange() + core.GetExtraRange(unitSelf) + core.GetExtraRange(unitTarget)) or 0
+    local ultiRange = ulti and (ulti:GetRange() + core.GetExtraRange(unitSelf) + core.GetExtraRange(targetHero)) or 0
 
     local bUseUlti = true
 
     if ulti and ulti:CanActivate() and bUseUlti and dist < ultiRange then
-      bActionTaken = core.OrderAbilityEntity(botBrain, ulti, unitTarget)
+      bActionTaken = core.OrderAbilityEntity(botBrain, ulti, targetHero)
     elseif (ulti and ulti:CanActivate() and bUseUlti and dist > ultiRange) then
       --move in when we want to ult
-      local desiredPos = unitTarget:GetPosition()
+      local desiredPos = targetHero:GetPosition()
 
       if itemPK and itemPK:CanActivate() then
         bActionTaken = core.OrderItemPosition(botBrain, unitSelf, itemPK, desiredPos)
@@ -366,6 +393,31 @@ end
 object.oncombateventOld = object.oncombatevent
 object.oncombatevent = object.oncombateventOverride
 
+-- custom destroy building behavior
+
+local function DestroyBuildingUtility(botBrain)
+  for _, enemyBuilding in pairs(core.localUnits["EnemyBuildings"]) do
+    -- BotEcho(enemyBuilding:GetTypeName())
+    if enemyBuilding:IsBase() then
+      -- BotEcho("base!")
+      behaviorLib.heroTarget = enemyBuilding
+      return math.ceil(0.5 - enemyBuilding:GetHealthPercent()) * (1 - enemyBuilding:GetHealthPercent()) * 200
+    end
+  end
+  return 0
+end
+
+local function DestroyBuildingExecute(botBrain)
+  core.OrderAttack(botBrain, core.unitSelf, behaviorLib.heroTarget)
+  return true
+end
+
+local DestroyBuildingBehavior = {}
+DestroyBuildingBehavior["Utility"] = DestroyBuildingUtility
+DestroyBuildingBehavior["Execute"] = DestroyBuildingExecute
+DestroyBuildingBehavior["Name"] = "DestroyBuilding"
+tinsert(behaviorLib.tBehaviors, DestroyBuildingBehavior)
+
 function behaviorLib.CustomHarassUtility(unit)
   local unitSelf = core.unitSelf;
   local health = unitSelf:GetHealthPercent();
@@ -409,7 +461,7 @@ local function hookExecute(botBrain)
   if skills.hook:CanActivate() then
     local location = generics.predict_location(unitSelf, hookTarget, 1600);
     core.OrderAbilityPosition(botBrain, skills.hook, location);
-    core.teamBotBrain:SetTeamTarget(hookTarget)
+    -- core.teamBotBrain:SetTeamTarget(hookTarget)
   end
 end
 
@@ -424,10 +476,6 @@ local function findHookPlaceUtility(botBrain)
   if not skills.hook:CanActivate() then
     return 0
   end
-  if not core.teamBotBrain.enemyTeam or not core.teamBotBrain.allyTeam then
-    return 0
-  end
-
   local inRange = false
   for _, unit in pairs(core.localUnits["EnemyHeroes"]) do
     local location = generics.predict_location(unitSelf, unit, 1600)
@@ -453,18 +501,15 @@ local function findHookPlaceUtility(botBrain)
 end
 
 local function findHookPlaceExecute(botBrain)
-  local enemyTeam = core.teamBotBrain.enemyTeam
-  local allyTeam = core.teamBotBrain.allyTeam
-  if not enemyTeam or not enemyTeam[1] then
-    return
-  end
-  if not allyTeam or not allyTeam[1] then
-    return
-  end
   local unitSelf = core.unitSelf;
   local o = unitSelf:GetPosition()
-  local c = core.teamBotBrain.enemyTeam[1]
-  local t = core.teamBotBrain.allyTeam[1]
+  local enemyTeam = core.teamBotBrain:GetEnemyTeam(o, skills.hook:GetRange() * 2)
+  local allyTeam = core.teamBotBrain:GetAllyTeam(o, skills.hook:GetRange())
+  local c = HoN.GetGroupCenter(enemyTeam)
+  local t = HoN.GetGroupCenter(allyTeam)
+  if not c or not t then
+    return
+  end
   local d
   if c.y == t.y then
     if o.y < t.y then
