@@ -62,11 +62,6 @@ function groupExecute(botBrain)
   if Vector3.Distance2D(unitSelf:GetPosition(), allyTowerPos) < 1000 then
     botBrain:OrderPosition(unitSelf.object, "move", allyTowerPos, "none", nil, false)
   end
-  local allyTeam = core.teamBotBrain:GetAllyTeam(unitSelf:GetPosition(), 1000);
-  allyTeam = HoN.GetGroupCenter(allyTeam);
-  if allyTeam then
-    botBrain:OrderPosition(unitSelf.object, "move", allyTeam, "none", nil, false)
-  end
 end
 
 generics.GroupBehavior = {}
@@ -327,14 +322,14 @@ function generics.AnalyzeAllyHeroPosition(hero)
   local towerStatus = AnalyzeNearbyTowers(heroPos)
   -- core.BotEcho(allyCount .. " " .. enemyCount .. " " .. allyAvgHpPc .. " " .. enemyAvgHpPc)
   if enemyCount > allyCount and enemyAvgHpPc > allyAvgHpPc then
-    return "GROUP" --"RETREAT"
-  elseif enemyCount == 0 or enemyCount > allyCount or (enemyCount == allyCount and enemyAvgHpPc >= allyAvgHpPc) then
+    return "RETREAT"
+  elseif enemyCount > allyCount or (enemyCount == allyCount and enemyAvgHpPc >= allyAvgHpPc) then
     return "GROUP"
   elseif (enemyCount == allyCount and allyAvgHpPc > enemyAvgHpPc) or (allyCount > enemyCount and enemyAvgHpPc > allyAvgHpPc) then
     return "HARASS"
   elseif allyCount > enemyCount and allyAvgHpPc > enemyAvgHpPc then
     return "ATTACK"
   else
-    return "GROUP"
+    return ""
   end
 end
