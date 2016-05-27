@@ -38,9 +38,16 @@ generics.TakeHealBehavior["Execute"] = takeHealExecute
 generics.TakeHealBehavior["Name"] = "TakeHeal"
 
 function groupUtility(botBrain)
-  local allyTeam = core.teamBotBrain.allyTeam
+  local allyTeam = core.teamBotBrain.GetAllyTeam()
   if allyTeam and allyTeam[1] then
     if generics.AnalyzeAllyHeroPosition(core.unitSelf) == "GROUP" then
+      local allyTeam = core.teamBotBrain:GetAllyTeam(core.unitSelf:GetPosition(), 2000);
+      allyTeam = HoN.GetGroupCenter(allyTeam);
+      if allyTeam then
+        if Vector3.Distance2D(core.unitSelf:GetPosition(), allyTeam) < 1000 then
+          return 0
+        end
+      end
       return 25
     end
   end
@@ -52,7 +59,7 @@ function groupExecute(botBrain)
   local enemyBasePos = core.enemyMainBaseStructure:GetPosition()
   local allyTower = core.GetClosestAllyTower(enemyBasePos)
   local allyTowerPos = allyTower:GetPosition()
-  if Vector3.Distance2D(unitSelf, allyTowerPos) < 1000 then
+  if Vector3.Distance2D(unitSelf:GetPosition(), allyTowerPos) < 1000 then
     botBrain:OrderPosition(unitSelf.object, "move", allyTowerPos, "none", nil, false)
   end
   local allyTeam = core.teamBotBrain:GetAllyTeam(unitSelf:GetPosition(), 1000);
@@ -320,7 +327,7 @@ function generics.AnalyzeAllyHeroPosition(hero)
   local towerStatus = AnalyzeNearbyTowers(heroPos)
   -- core.BotEcho(allyCount .. " " .. enemyCount .. " " .. allyAvgHpPc .. " " .. enemyAvgHpPc)
   if enemyCount > allyCount and enemyAvgHpPc > allyAvgHpPc then
-    return "RETREAT"
+    return "GROUP" --"RETREAT"
   elseif enemyCount == 0 or enemyCount > allyCount or (enemyCount == allyCount and enemyAvgHpPc >= allyAvgHpPc) then
     return "GROUP"
   elseif (enemyCount == allyCount and allyAvgHpPc > enemyAvgHpPc) or (allyCount > enemyCount and enemyAvgHpPc > allyAvgHpPc) then

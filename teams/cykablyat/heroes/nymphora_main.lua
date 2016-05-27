@@ -243,11 +243,6 @@ local function StunUtility(botBrain)
   if not skills.stun:CanActivate() then
     return 0
   end
-  local target = generics.FindBestEnemyTargetInRange(600)
-  if target and target:IsHero() then
-    stunTarget = target
-    return 100
-  end
   local health = 1
   for _, enemy in pairs(core.localUnits["EnemyHeroes"]) do
     local pos = generics.predict_location(core.unitSelf, enemy, 1000);
