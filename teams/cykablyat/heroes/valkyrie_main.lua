@@ -89,12 +89,9 @@ tinsert(behaviorLib.tBehaviors, behaviorLib.HarassHeroBehavior)
 tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
 tinsert(behaviorLib.tBehaviors, generics.GroupBehavior)
 tinsert(behaviorLib.tBehaviors, generics.DodgeBehavior)
-<<<<<<< HEAD
 tinsert(behaviorLib.tBehaviors, generics.RallyTeamBehavior)
 tinsert(behaviorLib.tBehaviors, generics.RegroupBehavior)
-=======
 tinsert(behaviorLib.tBehaviors, behaviorLib.HitBuildingBehavior)
->>>>>>> b02be4d2c1b3a929b43170e4414a251ae98801ec
 
 local bSkillsValid = false
 function object:SkillBuild()
@@ -213,7 +210,6 @@ local function harassUtilityOverride(botBrain)
   local teamState = core.teamBotBrain:GetTeamStatus()
   BotEcho("state is " .. state .. " old " .. old)
   if state == "ATTACK" and hpPc > 0.15 then
-<<<<<<< HEAD
     return 99
     -- return old + 80
   elseif state == "HARASS" and hpPc > 0.15 and teamState ~= "RALLY_TEAM" then
@@ -222,13 +218,10 @@ local function harassUtilityOverride(botBrain)
       return 99
     end
     return old
-=======
-    return old + 80
   elseif state == "HARASS" and hpPc > 0.15 then
     return old + 40
   elseif state == "GROUP" then
     return 0
->>>>>>> b02be4d2c1b3a929b43170e4414a251ae98801ec
   else
     if hpPc < 0.15 then
       return old - 30

@@ -83,22 +83,9 @@ tinsert(behaviorLib.tBehaviors, behaviorLib.StashBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.HarassHeroBehavior)
 tinsert(behaviorLib.tBehaviors, generics.GroupBehavior)
 tinsert(behaviorLib.tBehaviors, generics.DodgeBehavior)
-<<<<<<< HEAD
 tinsert(behaviorLib.tBehaviors, generics.RallyTeamBehavior)
-tinsert(behaviorLib.tBehaviors, generics.HitBuildingBehavior)
 tinsert(behaviorLib.tBehaviors, generics.RegroupBehavior)
-=======
 tinsert(behaviorLib.tBehaviors, behaviorLib.HitBuildingBehavior)
-
-behaviorLib.StartingItems =
-  {"Item_CrushingClaws", "Item_GuardianRing", "Item_ManaBattery", "Item_MinorTotem"}
-behaviorLib.LaneItems =
-  {"Item_EnhancedMarchers", "Item_ManaRegen3", "Item_Marchers", "Item_MysticVestments"}
-behaviorLib.MidItems =
-  {"Item_PortalKey", "Item_Silence", "Item_ManaBurn1", "Item_Morph"}
-behaviorLib.LateItems =
-  {"Item_Astrolabe", "Item_BarrierIdol", "Item_FrostfieldPlate"}
->>>>>>> b02be4d2c1b3a929b43170e4414a251ae98801ec
 
 local bSkillsValid = false
 function object:SkillBuild()
@@ -206,17 +193,13 @@ local function harassUtilityOverride(botBrain)
     return 99
     -- return old + 80
   elseif state == "HARASS" and hpPc > 0.15 then
-<<<<<<< HEAD
     old = old + 20
     if old > 100 then
       return 99
     end
     return old
-=======
-    return old + 40
   elseif state == "GROUP" then
     return 0
->>>>>>> b02be4d2c1b3a929b43170e4414a251ae98801ec
   else
     if hpPc < 0.15 then
       return old - 30
@@ -301,10 +284,7 @@ local function StunUtility(botBrain)
   if not skills.stun:CanActivate() then
     return 0
   end
-<<<<<<< HEAD
   local target = nil
-=======
->>>>>>> b02be4d2c1b3a929b43170e4414a251ae98801ec
   local health = 1
   for _, enemy in pairs(core.localUnits["EnemyHeroes"]) do
     local pos = generics.predict_location(core.unitSelf, enemy, 1000);

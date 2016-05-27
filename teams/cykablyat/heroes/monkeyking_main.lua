@@ -86,22 +86,9 @@ tinsert(behaviorLib.tBehaviors, behaviorLib.StashBehavior)
 tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
 tinsert(behaviorLib.tBehaviors, generics.GroupBehavior)
 tinsert(behaviorLib.tBehaviors, generics.DodgeBehavior)
-<<<<<<< HEAD
 tinsert(behaviorLib.tBehaviors, generics.RallyTeamBehavior)
-tinsert(behaviorLib.tBehaviors, generics.HitBuildingBehavior)
 tinsert(behaviorLib.tBehaviors, generics.RegroupBehavior)
-=======
 tinsert(behaviorLib.tBehaviors, behaviorLib.HitBuildingBehavior)
-
-behaviorLib.StartingItems =
-  {"Item_LoggersHatchet", "Item_ManaPotion", "Item_MinorTotem", "Item_RunesOfTheBlight"}
-behaviorLib.LaneItems =
-  {"Item_Bottle", "Item_EnhancedMarchers", "Item_PowerSupply", "Item_Protect"}
-behaviorLib.MidItems =
-  {"Item_Dawnbringer", "Item_Evasion", "Item_Pierce", "Item_Sasuke", "Item_Weapon3"}
-behaviorLib.LateItems =
-  {"Item_DaemonicBreastplate", "Item_Immunity"}
->>>>>>> b02be4d2c1b3a929b43170e4414a251ae98801ec
 
 local bSkillsValid = false
 function object:SkillBuild()
@@ -272,12 +259,6 @@ object.onthink = object.onthinkOverride
 local healAtWellOldUtility = behaviorLib.HealAtWellBehavior["Utility"]
 
 local function HealAtWellUtilityOverride(botBrain)
-<<<<<<< HEAD
-  -- BotEcho("heelaa")
-  if core.unitSelf:GetHealthPercent() and core.unitSelf:GetHealthPercent() < 0.15 then
-    -- BotEcho("wat")
-    return 999
-=======
   if core.unitSelf:GetHealthPercent() and core.unitSelf:GetHealthPercent() < 0.50 then
     local util = 1
     local heroMul = 10
@@ -295,7 +276,6 @@ local function HealAtWellUtilityOverride(botBrain)
       end
     end
     return util
->>>>>>> b02be4d2c1b3a929b43170e4414a251ae98801ec
   end
   return healAtWellOldUtility(botBrain)
 end
@@ -329,17 +309,13 @@ local function harassUtilityOverride(botBrain)
     return 99
     -- return old + 80
   elseif state == "HARASS" and hpPc > 0.15 then
-<<<<<<< HEAD
     old = old + 20
     if old > 100 then
       return 99
     end
     return old
-=======
-    return old + 40
   elseif state == "GROUP" then
     return 0
->>>>>>> b02be4d2c1b3a929b43170e4414a251ae98801ec
   else
     if hpPc < 0.15 then
       return old - 30
