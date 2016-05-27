@@ -70,6 +70,7 @@ tinsert(behaviorLib.tBehaviors, behaviorLib.StashBehavior)
 tinsert(behaviorLib.tBehaviors, behaviorLib.HarassHeroBehavior)
 tinsert(behaviorLib.tBehaviors, generics.GroupBehavior)
 tinsert(behaviorLib.tBehaviors, generics.DodgeBehavior)
+tinsert(behaviorLib.tBehaviors, generics.HitBuildingBehavior)
 
 behaviorLib.StartingItems =
   {"Item_CrushingClaws", "Item_GuardianRing", "Item_ManaBattery", "Item_MinorTotem"}
@@ -144,6 +145,19 @@ end
 behaviorLib.HealAtWellBehavior["Utility"] = HealAtWellUtilityOverride
 
 -- end healAtWell
+
+-- Custom HitBuildingUtility
+
+local oldHitBuildingUtility = behaviorLib.HitBuildingBehavior["Utility"]
+
+local function NewHitBuildingUtility(botBrain)
+  local addToUtil = 0
+  local scaleOldUtil = 2
+  return scaleOldUtil*(oldHitBuildingUtility(botBrain)) + addToUtil
+end
+
+behaviorLib.HitBuildingBehavior["Utility"] = NewHitBuildingUtility
+-- end HitBuilding
 
 local harassOldUtility = behaviorLib.HarassHeroBehavior["Utility"]
 local harassOldExecute = behaviorLib.HarassHeroBehavior["Execute"]

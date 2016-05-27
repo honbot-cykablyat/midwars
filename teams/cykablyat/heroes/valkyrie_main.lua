@@ -80,6 +80,7 @@ tinsert(behaviorLib.tBehaviors, behaviorLib.HarassHeroBehavior)
 tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
 tinsert(behaviorLib.tBehaviors, generics.GroupBehavior)
 tinsert(behaviorLib.tBehaviors, generics.DodgeBehavior)
+tinsert(behaviorLib.tBehaviors, generics.HitBuildingBehavior)
 
 local bSkillsValid = false
 function object:SkillBuild()
@@ -141,6 +142,19 @@ end
 behaviorLib.HealAtWellBehavior["Utility"] = HealAtWellUtilityOverride
 
 -- end healAtWell
+
+-- Custom HitBuildingUtility
+
+local oldHitBuildingUtility = behaviorLib.HitBuildingBehavior["Utility"]
+
+local function NewHitBuildingUtility(botBrain)
+  local addToUtil = 0
+  local scaleOldUtil = 2
+  return scaleOldUtil*(oldHitBuildingUtility(botBrain)) + addToUtil
+end
+
+behaviorLib.HitBuildingBehavior["Utility"] = NewHitBuildingUtility
+-- end HitBuilding
 
 local harassOldUtility = behaviorLib.HarassHeroBehavior["Utility"]
 local harassOldExecute = behaviorLib.HarassHeroBehavior["Execute"]

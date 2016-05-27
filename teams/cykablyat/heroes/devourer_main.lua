@@ -73,6 +73,7 @@ tinsert(behaviorLib.tBehaviors, behaviorLib.HarassHeroBehavior)
 tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
 tinsert(behaviorLib.tBehaviors, generics.GroupBehavior)
 tinsert(behaviorLib.tBehaviors, generics.DodgeBehavior)
+tinsert(behaviorLib.tBehaviors, generics.HitBuildingBehavior)
 
 local bSkillsValid = false
 function object:SkillBuild()
@@ -156,6 +157,19 @@ local healAtWellOldUtility = behaviorLib.HealAtWellBehavior["Utility"]
 local function HealAtWellUtilityOverride(botBrain)
   if core.unitSelf:GetHealthPercent() and core.unitSelf:GetHealthPercent() < 0.15 then
     return 999
+    --local util = 0
+    --local heroMul = 10
+    --local range = 2200
+    --local rangeSq = range * range
+    --local enemyHeroes = core.CopyTable(core.localUnits["EnemyHeroes"])
+    --if enemyHeroes then
+      --for _, enemy in pairs(enemyHeroes) do
+        --if Vector3.Distance2DSq(enemy:GetPosition(), myPos) < rangeSq then
+          --util = util * heroMul
+        --end
+      --end
+    --end
+    --return util
   end
   return healAtWellOldUtility(botBrain)
 end
@@ -163,6 +177,19 @@ end
 behaviorLib.HealAtWellBehavior["Utility"] = HealAtWellUtilityOverride
 
 -- end healAtWell
+
+-- Custom HitBuildingUtility
+
+local oldHitBuildingUtility = behaviorLib.HitBuildingBehavior["Utility"]
+
+local function NewHitBuildingUtility(botBrain)
+  local addToUtil = 0
+  local scaleOldUtil = 2
+  return scaleOldUtil*(oldHitBuildingUtility(botBrain)) + addToUtil
+end
+
+behaviorLib.HitBuildingBehavior["Utility"] = NewHitBuildingUtility
+-- end HitBuilding
 
 -- Custom harass behaviour
 
