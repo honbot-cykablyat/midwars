@@ -158,13 +158,14 @@ local function HealAtWellUtilityOverride(botBrain)
   if core.unitSelf:GetHealthPercent() and core.unitSelf:GetHealthPercent() < 0.50 then
     local util = 1
     local heroMul = 10
-    local enemyHeroes = core.teamBotBrain.GetEnemyTeam(core.unitSelf:GetPosition(), 2200)
+    local pos = core.unitSelf:GetPosition()
+    local enemyHeroes = core.teamBotBrain.GetEnemyTeam(2200, range)
     if enemyHeroes then
       for _, _ in pairs(enemyHeroes) do
           util = util * heroMul
       end
     end
-    local allyHeroes = core.teamBotBrain.GetAllyTeam(core.unitSelf:GetPosition(), 2200)
+    local allyHeroes = core.teamBotBrain.GetAllyTeam(2200, range)
     if allyHeroes then
       for _, _ in pairs(allyHeroes) do
           util = util / (heroMul * core.unitSelf:GetHealthPercent())
