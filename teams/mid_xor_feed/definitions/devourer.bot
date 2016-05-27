@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bot
+  name="MidXORFeed_Devourer"
+  description="MidXORFeed Devourer"
+  heroname="Hero_Devourer"
+  rootlua="../heroes/devourer_main.lua"
+  defaultplayername="MidXORFeed Devourer"
+  precachepath="/heroes/devourer/"
+/>
