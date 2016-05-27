@@ -75,7 +75,8 @@ local function findProjectile(botBrain)
     if unit:GetTypeName() == "Gadget_Valkyrie_Ability2_Reveal" and unit:GetTeam() ~= core.myTeam then
       local arrowPos = unit:GetPosition()
       local heading = unit:GetHeading()
-      if intersects({arrowPos, heading * 750}, {Vector3.Create(pos.x - 3, pos.y - 3, 0), Vector3.Create(pos.x + 3, pos.y + 3, 0)}) then
+      local radius = unitSelf:GetBoundsRadius();
+      if intersects({arrowPos, heading * 750}, {Vector3.Create(pos.x - radius, pos.y - radius, 0), Vector3.Create(pos.x + radius, pos.y + radius, 0)}) then
         return {arrowPos, heading}
       end
     end
@@ -159,6 +160,11 @@ function generics.predict_location(unit, enemy, projectileSpeed)
   local enemyHeading = enemy:GetHeading()
   local selfPos = unit:GetPosition()
   local enemyPos = enemy:GetPosition()
+  if enemy:GetBehavior() then
+    if not enemy:GetBehavior():GetType() == "Move" then
+      return enemyPos    
+    end
+  end
   local enemySpeed = enemy:GetMoveSpeed()
   if not enemyHeading then
     return enemyPos
@@ -167,14 +173,15 @@ function generics.predict_location(unit, enemy, projectileSpeed)
 
   local startPos = enemyPos;
   local t = Vector3.Distance2D(selfPos, startPos) / projectileSpeed;
-  while true do
-    local newPos = startPos + t * enemyMovement;
-    local newT = Vector3.Distance2D(selfPos, newPos) / projectileSpeed;
-    if math.abs(newT - t) < 0.001 then
-      return newPos
-    end
-    t = newT
-  end
+  return startPos + t * enemyMovement
+  --while true do
+  --  local newPos = startPos + t * enemyMovement;
+  --  local newT = Vector3.Distance2D(selfPos, newPos) / projectileSpeed;
+  --  if math.abs(newT - t) < 0.001 then
+  --    return newPos
+  --  end
+  --  t = newT
+  --end
 end
 
 

@@ -115,7 +115,7 @@ function object:onthinkOverride(tGameVariables)
   -- BotEcho("lasdfasdf")
   -- BotEcho(core.tMyLane)
   -- core.printTable(core.tMyLane)
-  local state = generics.AnalyzeAllyHeroPosition(core.unitSelf)
+  -- local state = generics.AnalyzeAllyHeroPosition(core.unitSelf)
   -- BotEcho("puppet state: " .. state)
 end
 object.onthinkOld = object.onthink

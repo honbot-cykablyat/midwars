@@ -155,21 +155,22 @@ object.onthink = object.onthinkOverride
 local healAtWellOldUtility = behaviorLib.HealAtWellBehavior["Utility"]
 
 local function HealAtWellUtilityOverride(botBrain)
-  if core.unitSelf:GetHealthPercent() and core.unitSelf:GetHealthPercent() < 0.15 then
-    return 999
-    --local util = 0
-    --local heroMul = 10
-    --local range = 2200
-    --local rangeSq = range * range
-    --local enemyHeroes = core.CopyTable(core.localUnits["EnemyHeroes"])
-    --if enemyHeroes then
-      --for _, enemy in pairs(enemyHeroes) do
-        --if Vector3.Distance2DSq(enemy:GetPosition(), myPos) < rangeSq then
-          --util = util * heroMul
-        --end
-      --end
-    --end
-    --return util
+  if core.unitSelf:GetHealthPercent() and core.unitSelf:GetHealthPercent() < 0.50 then
+    local util = 1
+    local heroMul = 10
+    local enemyHeroes = core.teamBotBrain.GetEnemyTeam(core.unitSelf:GetPosition(), 2200)
+    if enemyHeroes then
+      for _, _ in pairs(enemyHeroes) do
+          util = util * heroMul
+      end
+    end
+    local allyHeroes = core.teamBotBrain.GetAllyTeam(core.unitSelf:GetPosition(), 2200)
+    if allyHeroes then
+      for _, _ in pairs(allyHeroes) do
+          util = util / (heroMul * core.unitSelf:GetHealthPercent())
+      end
+    end
+    return util
   end
   return healAtWellOldUtility(botBrain)
 end
