@@ -54,6 +54,21 @@ object.heroName = 'Hero_MonkeyKing'
 --------------------------------
 core.tLanePreferences = {Jungle = 0, Mid = 5, ShortSolo = 0, LongSolo = 0, ShortSupport = 0, LongSupport = 0, ShortCarry = 0, LongCarry = 0}
 
+
+--------------------------------
+-- Items
+--------------------------------
+
+
+behaviorLib.StartingItems =
+  {"Item_LoggersHatchet", "Item_ManaPotion", "Item_MinorTotem"}
+behaviorLib.LaneItems =
+  {"Item_Bottle", "Item_EnhancedMarchers", "Item_PowerSupply", "Item_Protect"}
+behaviorLib.MidItems =
+  {"Item_Dawnbringer", "Item_Evasion", "Item_Pierce", "Item_Sasuke", "Item_Weapon3"}
+behaviorLib.LateItems =
+  {"Item_DaemonicBreastplate", "Item_Immunity"}
+
 --------------------------------
 -- Skills
 --------------------------------
@@ -73,15 +88,7 @@ tinsert(behaviorLib.tBehaviors, generics.GroupBehavior)
 tinsert(behaviorLib.tBehaviors, generics.DodgeBehavior)
 tinsert(behaviorLib.tBehaviors, generics.RallyTeamBehavior)
 tinsert(behaviorLib.tBehaviors, generics.HitBuildingBehavior)
-
-behaviorLib.StartingItems =
-  {"Item_LoggersHatchet", "Item_ManaPotion", "Item_MinorTotem", "Item_RunesOfTheBlight"}
-behaviorLib.LaneItems =
-  {"Item_Bottle", "Item_EnhancedMarchers", "Item_PowerSupply", "Item_Protect"}
-behaviorLib.MidItems =
-  {"Item_Dawnbringer", "Item_Evasion", "Item_Pierce", "Item_Sasuke", "Item_Weapon3"}
-behaviorLib.LateItems =
-  {"Item_DaemonicBreastplate", "Item_Immunity"}
+tinsert(behaviorLib.tBehaviors, generics.RegroupBehavior)
 
 local bSkillsValid = false
 function object:SkillBuild()
@@ -289,9 +296,15 @@ local function harassUtilityOverride(botBrain)
     return 99
     -- return old + 80
   elseif state == "HARASS" and hpPc > 0.15 then
-    return old + 20
-    -- return old + 40
+    old = old + 20
+    if old > 100 then
+      return 99
+    end
+    return old
   else
+    if hpPc < 0.15 then
+      return old - 30
+    end
     return old
   end
 end
@@ -338,20 +351,28 @@ behaviorLib.HarassHeroBehavior["Execute"] = harassExecuteOverride
 
 -- custom destroy building behavior
 
+local buildingTarget = nil
 local function DestroyBuildingUtility(botBrain)
   for _, enemyBuilding in pairs(core.localUnits["EnemyBuildings"]) do
     -- BotEcho(enemyBuilding:GetTypeName())
     if enemyBuilding:IsBase() then
-      -- BotEcho("base!")
-      behaviorLib.heroTarget = enemyBuilding
-      return math.ceil(0.5 - enemyBuilding:GetHealthPercent()) * (1 - enemyBuilding:GetHealthPercent()) * 200
+      buildingTarget = enemyBuilding
+      local value = math.ceil(0.75 - enemyBuilding:GetHealthPercent()) * (1 - enemyBuilding:GetHealthPercent()) * 250
+      return value
+    elseif enemyBuilding:IsTower() then
+      local dist = Vector3.Distance2D(enemyBuilding:GetPosition(), core.unitSelf:GetPosition())
+      if dist < 550 then
+        buildingTarget = enemyBuilding
+        local value = math.ceil(0.2 - enemyBuilding:GetHealthPercent()) * (1 - enemyBuilding:GetHealthPercent()) * 250
+        return value
+      end
     end
   end
   return 0
 end
 
 local function DestroyBuildingExecute(botBrain)
-  core.OrderAttack(botBrain, core.unitSelf, behaviorLib.heroTarget)
+  core.OrderAttack(botBrain, core.unitSelf, buildingTarget)
   return true
 end
 

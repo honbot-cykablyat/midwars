@@ -56,7 +56,7 @@ function object:GetRallyPoint()
 end
 
 function CreateRallyPoint()
-  core.BotEcho("creating rally point!")
+  -- core.BotEcho("creating rally point!")
   local enemyBasePos = core.enemyMainBaseStructure:GetPosition()
   local allyBasePos = core.allyMainBaseStructure:GetPosition()
   local allyTowerPos = core.GetClosestAllyTower(enemyBasePos):GetPosition()
@@ -130,8 +130,8 @@ end
 function object:onthinkOverride(tGameVariables)
   self:onthinkOld(tGameVariables)
   -- custom code here
-  object.UpdateTeamStatus()
-  core.BotEcho("team status : " .. object.teamStatus)
+  -- object.UpdateTeamStatus()
+  -- core.BotEcho("team status : " .. object.teamStatus)
   CreateRallyPoint()
 end
 object.onthinkOld = object.onthink

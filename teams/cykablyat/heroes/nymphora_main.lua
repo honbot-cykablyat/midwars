@@ -55,6 +55,19 @@ object.heroName = 'Hero_Fairy'
 core.tLanePreferences = {Jungle = 0, Mid = 0, ShortSolo = 0, LongSolo = 0, ShortSupport = 5, LongSupport = 5, ShortCarry = 0, LongCarry = 0}
 
 --------------------------------
+-- Items
+--------------------------------
+
+behaviorLib.StartingItems =
+  {"Item_CrushingClaws", "Item_GuardianRing", "Item_ManaBattery", "Item_MinorTotem"}
+behaviorLib.LaneItems =
+  {"Item_EnhancedMarchers", "Item_ManaRegen3", "Item_Marchers", "Item_MysticVestments"}
+behaviorLib.MidItems =
+  {"Item_PortalKey", "Item_Silence", "Item_ManaBurn1", "Item_Morph"}
+behaviorLib.LateItems =
+  {"Item_Astrolabe", "Item_BarrierIdol", "Item_FrostfieldPlate"}
+
+--------------------------------
 -- Skills
 --------------------------------
 behaviorLib.tBehaviors = {}
@@ -72,15 +85,7 @@ tinsert(behaviorLib.tBehaviors, generics.GroupBehavior)
 tinsert(behaviorLib.tBehaviors, generics.DodgeBehavior)
 tinsert(behaviorLib.tBehaviors, generics.RallyTeamBehavior)
 tinsert(behaviorLib.tBehaviors, generics.HitBuildingBehavior)
-
-behaviorLib.StartingItems =
-  {"Item_CrushingClaws", "Item_GuardianRing", "Item_ManaBattery", "Item_MinorTotem"}
-behaviorLib.LaneItems =
-  {"Item_EnhancedMarchers", "Item_ManaRegen3", "Item_Marchers", "Item_MysticVestments"}
-behaviorLib.MidItems =
-  {"Item_PortalKey", "Item_Silence", "Item_ManaBurn1", "Item_Morph"}
-behaviorLib.LateItems =
-  {"Item_Astrolabe", "Item_BarrierIdol", "Item_FrostfieldPlate"}
+tinsert(behaviorLib.tBehaviors, generics.RegroupBehavior)
 
 local bSkillsValid = false
 function object:SkillBuild()
@@ -173,9 +178,15 @@ local function harassUtilityOverride(botBrain)
     return 99
     -- return old + 80
   elseif state == "HARASS" and hpPc > 0.15 then
-    return old + 20
-    -- return old + 40
+    old = old + 20
+    if old > 100 then
+      return 99
+    end
+    return old
   else
+    if hpPc < 0.15 then
+      return old - 30
+    end
     return old
   end
 end
@@ -199,7 +210,8 @@ local function harassExecuteOverride(botBrain)
     local stun = skills.stun
     if stun:CanActivate() and core.unitSelf:GetMana() > 50 then
       local nRange = stun:GetRange()
-      if nTargetDistanceSq < (nRange * nRange) then
+      BotEcho("EXECUTING DEFAULT STUN..")
+      if nTargetDistanceSq-90 < (nRange * nRange) then
         bActionTaken = core.OrderAbilityPosition(botBrain, stun, targetHero:GetPosition())
       else
         bActionTaken = core.OrderMoveToUnitClamp(botBrain, unitSelf, targetHero)
@@ -217,20 +229,28 @@ behaviorLib.HarassHeroBehavior["Execute"] = harassExecuteOverride
 
 -- custom destroy building behavior
 
+local buildingTarget = nil
 local function DestroyBuildingUtility(botBrain)
   for _, enemyBuilding in pairs(core.localUnits["EnemyBuildings"]) do
     -- BotEcho(enemyBuilding:GetTypeName())
     if enemyBuilding:IsBase() then
-      behaviorLib.heroTarget = enemyBuilding
+      buildingTarget = enemyBuilding
       local value = math.ceil(0.75 - enemyBuilding:GetHealthPercent()) * (1 - enemyBuilding:GetHealthPercent()) * 250
       return value
+    elseif enemyBuilding:IsTower() then
+      local dist = Vector3.Distance2D(enemyBuilding:GetPosition(), core.unitSelf:GetPosition())
+      if dist < 550 then
+        buildingTarget = enemyBuilding
+        local value = math.ceil(0.2 - enemyBuilding:GetHealthPercent()) * (1 - enemyBuilding:GetHealthPercent()) * 250
+        return value
+      end
     end
   end
   return 0
 end
 
 local function DestroyBuildingExecute(botBrain)
-  core.OrderAttack(botBrain, core.unitSelf, behaviorLib.heroTarget)
+  core.OrderAttack(botBrain, core.unitSelf, buildingTarget)
   return true
 end
 
@@ -240,16 +260,14 @@ DestroyBuildingBehavior["Execute"] = DestroyBuildingExecute
 DestroyBuildingBehavior["Name"] = "DestroyBuilding"
 tinsert(behaviorLib.tBehaviors, DestroyBuildingBehavior)
 
+-- custom stun behavior
+
 local stunTarget = nil
 local function StunUtility(botBrain)
   if not skills.stun:CanActivate() then
     return 0
   end
-  local target = generics.FindBestEnemyTargetInRange(600)
-  if target and target:IsHero() then
-    stunTarget = target
-    return 100
-  end
+  local target = nil
   local health = 1
   for _, enemy in pairs(core.localUnits["EnemyHeroes"]) do
     local pos = generics.predict_location(core.unitSelf, enemy, 1000);
@@ -270,6 +288,7 @@ local function StunUtility(botBrain)
 end
 
 local function StunExecute(botBrain)
+  BotEcho("EXECUTING CUSTOM STUN!")
   if stunTarget and skills.stun:CanActivate() then
     local pos = generics.predict_location(core.unitSelf, stunTarget, 700)
     if pos then

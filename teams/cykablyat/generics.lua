@@ -282,30 +282,19 @@ function generics.CalculateTeamHealthPc(team)
   return teamHpPc / table.getn(team)
 end
 
--- returns 0 if no tower, 1 if ally tower, -1 if enemy tower
--- can't have both ally tower and enemy tower in range??
+-- returns a number between 1 and -1 depending if closer to ally or enemy tower
 function generics.AnalyzeNearbyTowers(pos)
-  -- BotEcho("yo")
-  local status = 0
-  for _, building in pairs(core.localUnits["AllyBuildings"]) do
-    if building:IsTower() then
-      local dist = Vector3.Distance2D(pos, building:GetPosition())
-      if dist < 600 then
-        status = 1
-      end
-    end
+  local allyTowerDist = Vector3.Distance2D(pos, core.GetClosestAllyTower(pos):GetPosition())
+  local enemyTowerDist = Vector3.Distance2D(pos, core.GetClosestEnemyTower(pos):GetPosition())
+  -- local allyValue = math.ceil(700 - allyTowerDist) * 1 / allyTowerDist
+  -- local enemyValue = math.ceil(1000 - enemyTowerDist) * 1.3 / enemyTowerDist
+  if allyTowerDist < 650 then
+    return 1
+  elseif enemyTowerDist < 1000 then
+    return -1
+  else
+    return 0
   end
-  for _, building in pairs(core.localUnits["EnemyBuildings"]) do
-    -- BotEcho("building " .. building:GetTypeName())
-    if building:IsTower() then
-      local dist = Vector3.Distance2D(pos, building:GetPosition())
-      -- BotEcho("dist" .. dist)
-      if dist < 1000 then
-        status = -1
-      end
-    end
-  end
-  return status
 end
 
 function generics.AnalyzeAllyHeroPosition(hero)
@@ -319,7 +308,7 @@ function generics.AnalyzeAllyHeroPosition(hero)
   local towerStatus = generics.AnalyzeNearbyTowers(heroPos)
   local status = nil
   -- core.BotEcho(allyCount .. " " .. enemyCount .. " " .. allyAvgHpPc .. " " .. enemyAvgHpPc)
-  BotEcho("tower status " .. towerStatus)
+  -- BotEcho("tower status " .. towerStatus)
   if enemyCount > allyCount and (enemyAvgHpPc > allyAvgHpPc + 0.3 or towerStatus == -1) then
     status =  "RETREAT"
   elseif enemyCount == 0 or enemyCount > allyCount or (enemyCount == allyCount and enemyAvgHpPc >= allyAvgHpPc) then
@@ -331,7 +320,7 @@ function generics.AnalyzeAllyHeroPosition(hero)
   else
     status = "GROUP"
   end
-  BotEcho("status: " .. status)
+  -- BotEcho("status: " .. status)
   generics.positionStatus = status
 end
 
@@ -366,6 +355,48 @@ generics.RallyTeamBehavior = {}
 generics.RallyTeamBehavior["Utility"] = RallyTeamBehaviorUtility
 generics.RallyTeamBehavior["Execute"] = RallyTeamBehaviorExecute
 generics.RallyTeamBehavior["Name"] = "RallyTeam"
+
+-- fall back to ally tower if too far away
+
+function RegroupBehaviorUtility(botBrain)
+  -- local pos = core.unitSelf:GetPosition()
+  -- local enemyBaseDist = Vector3.Distance2D(pos, core.enemyMainBaseStructure:GetPosition())
+  -- local allyBaseDist = Vector3.Distance2D(pos, core.allyMainBaseStructure:GetPosition())
+  -- local allyTowerDist = Vector3.Distance2D(pos, core.GetClosestAllyTower(pos):GetPosition())
+  -- local allies = core.teamBotBrain:GetAllyTeam(pos, 1000)
+  -- local alliesHpPc = generics.CalculateTeamHealthPc(allies)
+  -- local value = 3 / table.getn(allies) / alliesHpPc * (allyTowerDist / 70)
+  -- BotEcho("regroup value " .. value)
+  -- if table.getn(allies) < 3 and allyTowerDist > 600 and enemyBaseDist < allyBaseDist then
+  --   return value
+  -- end
+  return 0
+end
+
+function RegroupBehaviorExecute(botBrain)
+  BotEcho("REGROUPING!!")
+  local rallyPoint = core.teamBotBrain:GetRallyPoint()
+  local dist = Vector3.Distance2D(core.unitSelf:GetPosition(), rallyPoint)
+  if dist > 500 then
+    if Vector3.Distance2D(core.unitSelf:GetPosition(), rallyPoint) > 1200 then
+      itemGhostMarchers = core.GetItem("Item_EnhancedMarchers")
+      if itemGhostMarchers ~= nil and itemGhostMarchers:CanActivate() then
+        botBrain:OrderItem(itemGhostMarchers.object or itemGhostMarchers, false)
+      end
+    end
+    core.OrderMoveToUnitClamp(botBrain, core.unitSelf, rallyPoint)
+    -- local vecPos = object.behaviorLib.PositionSelfBackUp()
+    -- core.DrawXPosition(vecPos, "yellow", 1000)
+		-- return vecPos and core.OrderMoveToPosClamp(botBrain, core.unitSelf, vecPos, false)
+  else
+    BotEcho("AT REGROUP POINT")
+  end
+end
+
+generics.RegroupBehavior = {}
+generics.RegroupBehavior["Utility"] = RegroupBehaviorUtility
+generics.RegroupBehavior["Execute"] = RegroupBehaviorExecute
+generics.RegroupBehavior["Name"] = "Regroup"
 
 -- fix that stupid ring
 

@@ -14,9 +14,9 @@ object.bAttackCommands = true
 object.bAbilityCommands = true
 object.bOtherCommands = true
 
-object.bReportBehavior = true
-object.bDebugUtility = true
-object.bDebugExecute = true
+object.bReportBehavior = false
+object.bDebugUtility = false
+object.bDebugExecute = false
 
 object.logger = {}
 object.logger.bWriteLog = false
@@ -55,6 +55,15 @@ object.heroName = 'Hero_Valkyrie'
 core.tLanePreferences = {Jungle = 0, Mid = 5, ShortSolo = 4, LongSolo = 2, ShortSupport = 0, LongSupport = 0, ShortCarry = 4, LongCarry = 3}
 
 --------------------------------
+-- Items
+--------------------------------
+
+behaviorLib.StartingItems = {"2 Item_DuckBoots", "2 Item_MinorTotem", "Item_HealthPotion"}
+-- behaviorLib.LaneItems = {"Item_Marchers", "2 Item_Soulscream", "Item_EnhancedMarchers"}
+-- behaviorLib.MidItems = {"Item_Pierce 1", "Item_Immunity", "Item_Pierce 3"} --Pierce is Shieldbreaker, Immunity is Shrunken Head
+-- behaviorLib.LateItems = {"Item_Weapon3", "Item_Sicarius", "Item_ManaBurn2", "Item_BehemothsHeart", "Item_Damage9" } --Weapon3 is Savage Mace. Item_Sicarius is Firebrand. ManaBurn2 is Geomenter's Bane. Item_Damage9 is Doombringer
+
+--------------------------------
 -- Skills
 --------------------------------
 behaviorLib.tBehaviors = {}
@@ -73,7 +82,7 @@ tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
 tinsert(behaviorLib.tBehaviors, generics.GroupBehavior)
 tinsert(behaviorLib.tBehaviors, generics.DodgeBehavior)
 tinsert(behaviorLib.tBehaviors, generics.RallyTeamBehavior)
-tinsert(behaviorLib.tBehaviors, generics.HitBuildingBehavior)
+tinsert(behaviorLib.tBehaviors, generics.RegroupBehavior)
 
 local bSkillsValid = false
 function object:SkillBuild()
@@ -179,11 +188,14 @@ local function harassUtilityOverride(botBrain)
     return 99
     -- return old + 80
   elseif state == "HARASS" and hpPc > 0.15 and teamState ~= "RALLY_TEAM" then
-    return old + 20
-    -- return old + 40
+    old = old + 20
+    if old > 100 then
+      return 99
+    end
+    return old
   else
-    if teamState == "RALLY_TEAM" then
-      return old - 50
+    if hpPc < 0.15 then
+      return old - 30
     end
     return old
   end
@@ -258,20 +270,28 @@ tinsert(behaviorLib.tBehaviors, JavelinBehavior)
 
 -- custom destroy building behavior
 
+local buildingTarget = nil
 local function DestroyBuildingUtility(botBrain)
   for _, enemyBuilding in pairs(core.localUnits["EnemyBuildings"]) do
     -- BotEcho(enemyBuilding:GetTypeName())
     if enemyBuilding:IsBase() then
-      BotEcho("base!")
-      behaviorLib.heroTarget = enemyBuilding
-      return math.ceil(0.5 - enemyBuilding:GetHealthPercent()) * (1 - enemyBuilding:GetHealthPercent()) * 200
+      buildingTarget = enemyBuilding
+      local value = math.ceil(0.75 - enemyBuilding:GetHealthPercent()) * (1 - enemyBuilding:GetHealthPercent()) * 250
+      return value
+    elseif enemyBuilding:IsTower() then
+      local dist = Vector3.Distance2D(enemyBuilding:GetPosition(), core.unitSelf:GetPosition())
+      if dist < 550 then
+        buildingTarget = enemyBuilding
+        local value = math.ceil(0.2 - enemyBuilding:GetHealthPercent()) * (1 - enemyBuilding:GetHealthPercent()) * 250
+        return value
+      end
     end
   end
   return 0
 end
 
 local function DestroyBuildingExecute(botBrain)
-  core.OrderAttack(botBrain, core.unitSelf, behaviorLib.heroTarget)
+  core.OrderAttack(botBrain, core.unitSelf, buildingTarget)
   return true
 end
 

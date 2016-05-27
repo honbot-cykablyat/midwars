@@ -55,6 +55,15 @@ object.heroName = 'Hero_PuppetMaster'
 core.tLanePreferences = {Jungle = 0, Mid = 5, ShortSolo = 4, LongSolo = 0, ShortSupport = 0, LongSupport = 0, ShortCarry = 4, LongCarry = 3}
 
 --------------------------------
+-- Items
+--------------------------------
+
+behaviorLib.StartingItems = {"Item_ManaBattery", "Item_MinorTotem", "Item_MarkOfTheNovice"}
+behaviorLib.LaneItems = {"Item_Marchers", "Item_Steamboots", "Item_PowerSupply"}
+behaviorLib.MidItems = {"Item_GraveLocket", "Item_Protect"}
+behaviorLib.LateItems = {"Item_Silence", "Item_Weapon3"}
+
+--------------------------------
 -- Skills
 --------------------------------
 local bSkillsValid = false
@@ -112,6 +121,7 @@ tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
 tinsert(behaviorLib.tBehaviors, generics.GroupBehavior)
 tinsert(behaviorLib.tBehaviors, generics.DodgeBehavior)
 tinsert(behaviorLib.tBehaviors, generics.RallyTeamBehavior)
+tinsert(behaviorLib.tBehaviors, generics.RegroupBehavior)
 
 -- Custom healAtWell behaviorLib
 
@@ -128,21 +138,28 @@ behaviorLib.HealAtWellBehavior["Utility"] = HealAtWellUtilityOverride
 
 -- custom destroy building behavior
 
+local buildingTarget = nil
 local function DestroyBuildingUtility(botBrain)
   for _, enemyBuilding in pairs(core.localUnits["EnemyBuildings"]) do
     -- BotEcho(enemyBuilding:GetTypeName())
     if enemyBuilding:IsBase() then
-      behaviorLib.heroTarget = enemyBuilding
-      local value = math.ceil(0.5 - enemyBuilding:GetHealthPercent()) * (1 - enemyBuilding:GetHealthPercent()) * 200
-      -- BotEcho("base!" .. value)
+      buildingTarget = enemyBuilding
+      local value = math.ceil(0.75 - enemyBuilding:GetHealthPercent()) * (1 - enemyBuilding:GetHealthPercent()) * 250
       return value
+    elseif enemyBuilding:IsTower() then
+      local dist = Vector3.Distance2D(enemyBuilding:GetPosition(), core.unitSelf:GetPosition())
+      if dist < 550 then
+        buildingTarget = enemyBuilding
+        local value = math.ceil(0.2 - enemyBuilding:GetHealthPercent()) * (1 - enemyBuilding:GetHealthPercent()) * 250
+        return value
+      end
     end
   end
   return 0
 end
 
 local function DestroyBuildingExecute(botBrain)
-  core.OrderAttack(botBrain, core.unitSelf, behaviorLib.heroTarget)
+  core.OrderAttack(botBrain, core.unitSelf, buildingTarget)
   return true
 end
 
@@ -181,9 +198,15 @@ local function harassUtilityOverride(botBrain)
     return 99
     -- return old + 80
   elseif state == "HARASS" and hpPc > 0.15 then
-    return old + 20
-    -- return old + 40
+    old = old + 20
+    if old > 100 then
+      return 99
+    end
+    return old
   else
+    if hpPc < 0.15 then
+      return old - 30
+    end
     return old
   end
 end
@@ -202,13 +225,25 @@ local function harassExecuteOverride(botBrain)
   local bActionTaken = false
 
   if core.CanSeeUnit(botBrain, targetHero) then
-
+    local hp = targetHero:GetHealth()
     local nTargetDistanceSq = Vector3.Distance2DSq(unitSelf:GetPosition(), targetHero:GetPosition())
 
     local ulti = skills.ulti
     local nRange = ulti:GetRange()
-    if not targetHero:IsMagicImmune() and ulti:CanActivate() and nTargetDistanceSq < (nRange * nRange) then
+    if not targetHero:IsMagicImmune() and ulti:CanActivate() and nTargetDistanceSq < (nRange * nRange) and hp > 300 then
       bActionTaken = core.OrderAbilityEntity(botBrain, ulti, targetHero)
+    end
+
+    local hellflower = core.GetItem("Item_Silence")
+    if hellflower ~= nil and hellflower:CanActivate() then
+      local nRange = hellflower:GetRange()
+      if not bActionTaken and not targetHero:IsStunned() and not targetHero:IsMagicImmune() and nTargetDistanceSq < (nRange * nRange) then
+        BotEcho(hellflower:GetTypeName())
+        -- bActionTaken = botBrain:OrderItemEntity(hellflower.object or hellflower, targethero)
+        -- bActionTaken = core.OrderItemEntity(botBrain, hellflower.object or hellflower, targethero)
+        -- bActionTaken = core.OrderItemEntity(botBrain, hellflower.object or hellflower, targethero)
+      end
+      -- bActionTaken = botBrain:OrderItemEntity(itemHatchet.object or itemHatchet, unitCreepTarget.object or unitCreepTarget, false)
     end
 
     local hold = skills.hold
