@@ -1,0 +1,3 @@
+Alias "team_MidXORFeed_legion" "set teambotmanager_legion mid_xor_feed; AddBot 1 MidXORFeed_Valkyrie; AddBot 1 MidXORFeed_Devourer; AddBot 1 MidXORFeed_PuppetMaster; AddBot 1 MidXORFeed_Nymphora; AddBot 1 MidXORFeed_MonkeyKing;"
+
+Alias "team_MidXORFeed_hellbourne" "set teambotmanager_hellbourne mid_xor_feed; AddBot 2 MidXORFeed_Valkyrie; AddBot 2 MidXORFeed_Devourer; AddBot 2 MidXORFeed_PuppetMaster; AddBot 2 MidXORFeed_Nymphora; AddBot 2 MidXORFeed_MonkeyKing;"
