@@ -121,6 +121,27 @@ end
 --   object.teamTarget = target
 -- end
 
+function UpdateMovementBarrier()
+  local avgHeroLvl = 0
+  for _, hero in pairs(object.tAllyHeroes) do
+    avgHeroLvl = avgHeroLvl + hero:GetLevel()
+  end
+  avgHeroLvl = avgHeroLvl / 5
+  local enemyBasePos = core.enemyMainBaseStructure:GetPosition()
+  local allyBasePos = core.allyMainBaseStructure:GetPosition()
+  local allyTowerPos = core.GetClosestAllyTower(enemyBasePos):GetPosition()
+  local updatePerLevel = (10000 - 4800) / 25
+  local rallyPoint = allyBasePos + (Vector3.Normalize(allyBasePos + enemyBasePos) * 4800)
+  local rallyPoint2 = allyBasePos + (Vector3.Normalize(allyBasePos + enemyBasePos) * 10000)
+  local rallyPoint3 = allyBasePos + (Vector3.Normalize(allyBasePos + enemyBasePos) * (4800 + updatePerLevel * 24))
+  core.DrawXPosition(rallyPoint, "orange", 1000)
+  core.DrawXPosition(rallyPoint2, "orange", 1000)
+  core.DrawXPosition(rallyPoint3, "orange", 1000)
+  core.BotEcho(rallyPoint.y)
+  core.BotEcho(rallyPoint2.y)
+  core.BotEcho(avgHeroLvl)
+end
+
 ------------------------------------------------------
 --            onthink override                      --
 -- Called every bot tick, custom onthink code here  --
@@ -133,6 +154,7 @@ function object:onthinkOverride(tGameVariables)
   -- object.UpdateTeamStatus()
   -- core.BotEcho("team status : " .. object.teamStatus)
   CreateRallyPoint()
+  -- UpdateMovementBarrier()
 end
 object.onthinkOld = object.onthink
 object.onthink = object.onthinkOverride

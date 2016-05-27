@@ -40,19 +40,19 @@ generics.TakeHealBehavior["Execute"] = takeHealExecute
 generics.TakeHealBehavior["Name"] = "TakeHeal"
 
 function groupUtility(botBrain)
-  -- local allyTeam = core.teamBotBrain.GetAllyTeam()
-  -- if allyTeam and allyTeam[1] then
-  --   if generics.AnalyzeAllyHeroPosition(core.unitSelf) == "GROUP" then
-  --     local allyTeam = core.teamBotBrain:GetAllyTeam(core.unitSelf:GetPosition(), 2000);
-  --     allyTeam = HoN.GetGroupCenter(allyTeam);
-  --     if allyTeam then
-  --       if Vector3.Distance2D(core.unitSelf:GetPosition(), allyTeam) < 1000 then
-  --         return 0
-  --       end
-  --     end
-  --     return 25
-  --   end
-  -- end
+  local allyTeam = core.teamBotBrain.GetAllyTeam()
+  if allyTeam and allyTeam[1] then
+    if generics.AnalyzeAllyHeroPosition(core.unitSelf) == "GROUP" then
+      local allyTeam = core.teamBotBrain:GetAllyTeam(core.unitSelf:GetPosition(), 2000);
+      allyTeam = HoN.GetGroupCenter(allyTeam);
+      if allyTeam then
+        if Vector3.Distance2D(core.unitSelf:GetPosition(), allyTeam) < 1000 then
+          return 0
+        end
+      end
+      return 25
+    end
+  end
   return 0
 end
 
