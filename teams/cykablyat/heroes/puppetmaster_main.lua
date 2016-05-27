@@ -193,6 +193,8 @@ local function harassUtilityOverride(botBrain)
     return old + 80
   elseif state == "HARASS" and hpPc > 0.15 then
     return old + 40
+  elseif state == "GROUP" then
+    return 0
   else
     return old
   end
