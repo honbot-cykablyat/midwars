@@ -58,10 +58,11 @@ core.tLanePreferences = {Jungle = 0, Mid = 5, ShortSolo = 0, LongSolo = 0, Short
 -- Items
 --------------------------------
 
-behaviorLib.StartingItems = {"Item_ManaBattery", "2 Item_MinorTotem", "Item_HealthPotion"}
-behaviorLib.LaneItems = {"Item_Marchers", "Item_EnhancedMarchers", "Item_PowerSupply"}
-behaviorLib.MidItems = {"Item_PortalKey", "Item_MagicArmor2"}
-behaviorLib.LateItems = {"Item_BehemothsHeart"}
+behaviorLib.StartingItems = {"Item_IronBuckler", "2 Item_MinorTotem", "Item_LoggersHatchet", "Item_HealthPotion"}
+behaviorLib.LaneItems = {"Item_MagicArmor2", "Item_Striders", "Item_PowerSupply"}
+behaviorLib.MidItems = {"Item_Intelligence7", "Item_PortalKey", "Item_Summon"}
+behaviorLib.LateItems = {"Item_BarrierIdol", "Item_BehemothsHeart", "Item_Excruciator", "Item_PushStaff"}
+
 
 --------------------------------
 -- Skills
@@ -83,8 +84,8 @@ tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
 tinsert(behaviorLib.tBehaviors, generics.GroupBehavior)
 tinsert(behaviorLib.tBehaviors, generics.DodgeBehavior)
 tinsert(behaviorLib.tBehaviors, generics.RallyTeamBehavior)
-tinsert(behaviorLib.tBehaviors, generics.HitBuildingBehavior)
 tinsert(behaviorLib.tBehaviors, generics.RegroupBehavior)
+tinsert(behaviorLib.tBehaviors, behaviorLib.HitBuildingBehavior)
 
 local bSkillsValid = false
 function object:SkillBuild()
@@ -163,8 +164,23 @@ object.onthink = object.onthinkOverride
 local healAtWellOldUtility = behaviorLib.HealAtWellBehavior["Utility"]
 
 local function HealAtWellUtilityOverride(botBrain)
-  if core.unitSelf:GetHealthPercent() and core.unitSelf:GetHealthPercent() < 0.15 then
-    return 999
+  if core.unitSelf:GetHealthPercent() and core.unitSelf:GetHealthPercent() < 0.50 then
+    local util = 1
+    local heroMul = 10
+    local pos = core.unitSelf:GetPosition()
+    local enemyHeroes = core.teamBotBrain.GetEnemyTeam(2200, range)
+    if enemyHeroes then
+      for _, _ in pairs(enemyHeroes) do
+          util = util * heroMul
+      end
+    end
+    local allyHeroes = core.teamBotBrain.GetAllyTeam(2200, range)
+    if allyHeroes then
+      for _, _ in pairs(allyHeroes) do
+          util = util / (heroMul * core.unitSelf:GetHealthPercent())
+      end
+    end
+    return util
   end
   return healAtWellOldUtility(botBrain)
 end
@@ -205,6 +221,8 @@ local function harassUtilityOverride(botBrain)
       return 99
     end
     return old
+  elseif state == "GROUP" then
+    return 0
   else
     if hpPc < 0.15 then
       return old - 30

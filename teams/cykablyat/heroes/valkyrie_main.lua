@@ -54,6 +54,14 @@ object.heroName = 'Hero_Valkyrie'
 --------------------------------
 core.tLanePreferences = {Jungle = 0, Mid = 5, ShortSolo = 4, LongSolo = 2, ShortSupport = 0, LongSupport = 0, ShortCarry = 4, LongCarry = 3}
 
+behaviorLib.StartingItems =
+  {"Item_DuckBoots", "Item_HealthPotion", "Item_MinorTotem", "Item_PretendersCrown", "Item_RunesOfTheBlight"}
+behaviorLib.LaneItems =
+  {"Item_Energizer", "Item_Sicarius", "Item_Steamboots"}
+behaviorLib.MidItems =
+  {"Item_Dawnbringer", "Item_ManaBurn1", "Item_ManaBurn2", "Item_Pierce"}
+behaviorLib.LateItems =
+  {"Item_Wingbow", "Item_Immunity", "Item_Protect", "Item_Sasuke"}
 --------------------------------
 -- Items
 --------------------------------
@@ -81,8 +89,12 @@ tinsert(behaviorLib.tBehaviors, behaviorLib.HarassHeroBehavior)
 tinsert(behaviorLib.tBehaviors, generics.TakeHealBehavior)
 tinsert(behaviorLib.tBehaviors, generics.GroupBehavior)
 tinsert(behaviorLib.tBehaviors, generics.DodgeBehavior)
+<<<<<<< HEAD
 tinsert(behaviorLib.tBehaviors, generics.RallyTeamBehavior)
 tinsert(behaviorLib.tBehaviors, generics.RegroupBehavior)
+=======
+tinsert(behaviorLib.tBehaviors, behaviorLib.HitBuildingBehavior)
+>>>>>>> b02be4d2c1b3a929b43170e4414a251ae98801ec
 
 local bSkillsValid = false
 function object:SkillBuild()
@@ -106,16 +118,17 @@ function object:SkillBuild()
     return
   end
 
-  if skills.ulti:CanLevelUp() then
-    skills.ulti:LevelUp()
-  elseif skills.javelin:CanLevelUp() then
-    skills.javelin:LevelUp()
-  elseif skills.leap:CanLevelUp() then
-    skills.leap:LevelUp()
-  elseif skills.call:CanLevelUp() then
-    skills.call:LevelUp()
+  local skillarray = {skills.javelin, skills.leap, skills.javelin, skills.call, skills.call, skills.call, skills.call, skills.ulti, skills.javelin, skills.javelin, skills.ulti, skills.leap, skills.leap, skills.leap, skills.attributeBoost, skills.ulti}
+
+  if skillarray[unitSelf:GetLevel()] then
+    local lvSkill = skillarray[unitSelf:GetLevel()]
+    if lvSkill:CanLevelUp() then
+      lvSkill:LevelUp()
+    end
   else
-    skills.attributeBoost:LevelUp()
+    if skills.attributeBoost:CanLevelUp() then
+      skills.attributeBoost:LevelUp()
+    end
   end
 end
 
@@ -149,8 +162,23 @@ end
 local healAtWellOldUtility = behaviorLib.HealAtWellBehavior["Utility"]
 
 local function HealAtWellUtilityOverride(botBrain)
-  if core.unitSelf:GetHealthPercent() and core.unitSelf:GetHealthPercent() < 0.15 then
-    return 999
+  if core.unitSelf:GetHealthPercent() and core.unitSelf:GetHealthPercent() < 0.50 then
+    local util = 1
+    local heroMul = 10
+    local pos = core.unitSelf:GetPosition()
+    local enemyHeroes = core.teamBotBrain.GetEnemyTeam(2200, range)
+    if enemyHeroes then
+      for _, _ in pairs(enemyHeroes) do
+          util = util * heroMul
+      end
+    end
+    local allyHeroes = core.teamBotBrain.GetAllyTeam(2200, range)
+    if allyHeroes then
+      for _, _ in pairs(allyHeroes) do
+          util = util / (heroMul * core.unitSelf:GetHealthPercent())
+      end
+    end
+    return util
   end
   return healAtWellOldUtility(botBrain)
 end
@@ -185,6 +213,7 @@ local function harassUtilityOverride(botBrain)
   local teamState = core.teamBotBrain:GetTeamStatus()
   BotEcho("state is " .. state .. " old " .. old)
   if state == "ATTACK" and hpPc > 0.15 then
+<<<<<<< HEAD
     return 99
     -- return old + 80
   elseif state == "HARASS" and hpPc > 0.15 and teamState ~= "RALLY_TEAM" then
@@ -193,6 +222,13 @@ local function harassUtilityOverride(botBrain)
       return 99
     end
     return old
+=======
+    return old + 80
+  elseif state == "HARASS" and hpPc > 0.15 then
+    return old + 40
+  elseif state == "GROUP" then
+    return 0
+>>>>>>> b02be4d2c1b3a929b43170e4414a251ae98801ec
   else
     if hpPc < 0.15 then
       return old - 30
@@ -439,7 +475,7 @@ tinsert(behaviorLib.tBehaviors, LastHitBehaviour)
 
 local function escapeUtility(botBrain)
   local unitSelf = core.unitSelf
-  if eventsLib.recentDamageSec > 0.025 * core.unitSelf:GetMaxHealth() then
+  if eventsLib.recentDamageHalfSec > 0.025 * core.unitSelf:GetMaxHealth() then
     if skills.leap:CanActivate() then
       local angle = core.HeadingDifference(unitSelf, core.GetClosestAllyTower(unitSelf:GetPosition()):GetPosition())
       if angle < 0.25 then

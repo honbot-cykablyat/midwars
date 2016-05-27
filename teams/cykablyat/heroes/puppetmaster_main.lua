@@ -54,6 +54,16 @@ object.heroName = 'Hero_PuppetMaster'
 --------------------------------
 core.tLanePreferences = {Jungle = 0, Mid = 5, ShortSolo = 4, LongSolo = 0, ShortSupport = 0, LongSupport = 0, ShortCarry = 4, LongCarry = 3}
 
+behaviorLib.StartingItems =
+  {"Item_HealthPotion", "Item_MarkOfTheNovice", "Item_MinorTotem", "Item_PretendersCrown", "Item_RunesOfTheBlight"}
+behaviorLib.LaneItems =
+  {"Item_GraveLocket", "Item_Stealth", "Item_Steamboots"}
+behaviorLib.MidItems =
+  {"Item_ElderParasite", "Item_GrimoireOfPower", "Item_HarkonsBlade", "Item_Morph", "Item_Silence", "Item_Weapon3"}
+behaviorLib.LateItems =
+  {"Item_Immunity", "Item_LifeSteal4", "Item_Sasuke"}
+
+
 --------------------------------
 -- Items
 --------------------------------
@@ -128,8 +138,23 @@ tinsert(behaviorLib.tBehaviors, generics.RegroupBehavior)
 local healAtWellOldUtility = behaviorLib.HealAtWellBehavior["Utility"]
 
 local function HealAtWellUtilityOverride(botBrain)
-  if core.unitSelf:GetHealthPercent() and core.unitSelf:GetHealthPercent() < 0.15 then
-    return 999
+  if core.unitSelf:GetHealthPercent() and core.unitSelf:GetHealthPercent() < 0.50 then
+    local util = 1
+    local heroMul = 10
+    local pos = core.unitSelf:GetPosition()
+    local enemyHeroes = core.teamBotBrain.GetEnemyTeam(2200, range)
+    if enemyHeroes then
+      for _, _ in pairs(enemyHeroes) do
+          util = util * heroMul
+      end
+    end
+    local allyHeroes = core.teamBotBrain.GetAllyTeam(2200, range)
+    if allyHeroes then
+      for _, _ in pairs(allyHeroes) do
+          util = util / (heroMul * core.unitSelf:GetHealthPercent())
+      end
+    end
+    return util
   end
   return healAtWellOldUtility(botBrain)
 end
@@ -203,6 +228,8 @@ local function harassUtilityOverride(botBrain)
       return 99
     end
     return old
+  elseif state == "GROUP" then
+    return 0
   else
     if hpPc < 0.15 then
       return old - 30
