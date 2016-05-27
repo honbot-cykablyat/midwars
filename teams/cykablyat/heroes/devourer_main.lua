@@ -156,6 +156,7 @@ local healAtWellOldUtility = behaviorLib.HealAtWellBehavior["Utility"]
 
 local function HealAtWellUtilityOverride(botBrain)
   if core.unitSelf:GetHealthPercent() and core.unitSelf:GetHealthPercent() < 0.15 then
+    return 999
     local util = 0
     local heroMul = 10
     local range = 2200
