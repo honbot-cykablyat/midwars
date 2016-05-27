@@ -54,6 +54,16 @@ object.heroName = 'Hero_PuppetMaster'
 --------------------------------
 core.tLanePreferences = {Jungle = 0, Mid = 5, ShortSolo = 4, LongSolo = 0, ShortSupport = 0, LongSupport = 0, ShortCarry = 4, LongCarry = 3}
 
+behaviorLib.StartingItems =
+  {"Item_HealthPotion", "Item_MarkOfTheNovice", "Item_MinorTotem", "Item_PretendersCrown", "Item_RunesOfTheBlight"}
+behaviorLib.LaneItems =
+  {"Item_GraveLocket", "Item_Stealth", "Item_Steamboots"}
+behaviorLib.MidItems =
+  {"Item_ElderParasite", "Item_GrimoireOfPower", "Item_HarkonsBlade", "Item_Morph", "Item_Silence", "Item_Weapon3"}
+behaviorLib.LateItems =
+  {"Item_Immunity", "Item_LifeSteal4", "Item_Sasuke"}
+
+
 --------------------------------
 -- Skills
 --------------------------------

@@ -54,6 +54,14 @@ object.heroName = 'Hero_Valkyrie'
 --------------------------------
 core.tLanePreferences = {Jungle = 0, Mid = 5, ShortSolo = 4, LongSolo = 2, ShortSupport = 0, LongSupport = 0, ShortCarry = 4, LongCarry = 3}
 
+behaviorLib.StartingItems =
+  {"Item_DuckBoots", "Item_HealthPotion", "Item_MinorTotem", "Item_PretendersCrown", "Item_RunesOfTheBlight"}
+behaviorLib.LaneItems =
+  {"Item_Energizer", "Item_Sicarius", "Item_Steamboots"}
+behaviorLib.MidItems =
+  {"Item_Dawnbringer", "Item_ManaBurn1", "Item_ManaBurn2", "Item_Pierce"}
+behaviorLib.LateItems =
+  {"Item_Wingbow", "Item_Immunity", "Item_Protect", "Item_Sasuke"}
 --------------------------------
 -- Skills
 --------------------------------
@@ -95,16 +103,17 @@ function object:SkillBuild()
     return
   end
 
-  if skills.ulti:CanLevelUp() then
-    skills.ulti:LevelUp()
-  elseif skills.javelin:CanLevelUp() then
-    skills.javelin:LevelUp()
-  elseif skills.leap:CanLevelUp() then
-    skills.leap:LevelUp()
-  elseif skills.call:CanLevelUp() then
-    skills.call:LevelUp()
+  local skillarray = {skills.javelin, skills.leap, skills.javelin, skills.call, skills.call, skills.call, skills.call, skills.ulti, skills.javelin, skills.javelin, skills.ulti, skills.leap, skills.leap, skills.leap, skills.attributeBoost, skills.ulti}
+
+  if skillarray[unitSelf:GetLevel()] then
+    local lvSkill = skillarray[unitSelf:GetLevel()]
+    if lvSkill:CanLevelUp() then
+      lvSkill:LevelUp()
+    end
   else
-    skills.attributeBoost:LevelUp()
+    if skills.attributeBoost:CanLevelUp() then
+      skills.attributeBoost:LevelUp()
+    end
   end
 end
 
@@ -394,7 +403,7 @@ tinsert(behaviorLib.tBehaviors, LastHitBehaviour)
 
 local function escapeUtility(botBrain)
   local unitSelf = core.unitSelf
-  if eventsLib.recentDamageSec > 0.025 * core.unitSelf:GetMaxHealth() then
+  if eventsLib.recentDamageHalfSec > 0.025 * core.unitSelf:GetMaxHealth() then
     if skills.leap:CanActivate() then
       local angle = core.HeadingDifference(unitSelf, core.GetClosestAllyTower(unitSelf:GetPosition()):GetPosition())
       if angle < 0.25 then
