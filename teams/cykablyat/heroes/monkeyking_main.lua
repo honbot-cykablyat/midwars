@@ -432,7 +432,7 @@ tinsert(behaviorLib.tBehaviors, KillBehavior)
 
 local function escapeUtility(botBrain)
   local unitSelf = core.unitSelf
-  if eventsLib.recentDamageSec > 0.025 * core.unitSelf:GetMaxHealth() then
+  if eventsLib.recentDamageHalfSec > 0.025 * core.unitSelf:GetMaxHealth() then
     if skills.dash:CanActivate() then
       local angle = core.HeadingDifference(unitSelf, core.GetClosestAllyTower(unitSelf:GetPosition()):GetPosition())
       if angle < 0.25 then

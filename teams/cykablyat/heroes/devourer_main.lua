@@ -111,10 +111,10 @@ function object:SkillBuild()
   end
 end
 
-behaviorLib.StartingItems = {"Item_ManaBattery", "2 Item_MinorTotem", "Item_HealthPotion", "Item_RunesOfTheBlight"}
-behaviorLib.LaneItems = {"Item_Marchers", "Item_EnhancedMarchers", "Item_PowerSupply"}
-behaviorLib.MidItems = {"Item_PortalKey", "Item_MagicArmor2"}
-behaviorLib.LateItems = {"Item_BehemothsHeart"}
+behaviorLib.StartingItems = {"Item_IronBuckler", "Item_LoggersHatchet", "Item_RunesOfTheBlight", "Item_HealthPotion", "Item_RunesOfTheBlight"}
+behaviorLib.LaneItems = {"Item_MagicArmor2", "Item_Striders", "Item_PowerSupply"}
+behaviorLib.MidItems = {"Item_Intelligence7", "Item_PortalKey", "Item_Summon"}
+behaviorLib.LateItems = {"Item_BarrierIdol", "Item_BehemothsHeart", "Item_Excruciator", "Item_PushStaff"}
 
 ------------------------------------------------------
 --            onthink override                      --
